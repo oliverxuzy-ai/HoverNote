@@ -79,6 +79,30 @@ visual code. No deviation without explicit reason.
 
 ---
 
+## Building from source
+
+This project uses [xcodegen](https://github.com/yonaskolb/XcodeGen) to keep the
+Xcode project as a declarative file (`project.yml`) instead of a binary blob.
+`SideNote.xcodeproj` is intentionally gitignored.
+
+```bash
+# one-time setup
+brew install xcodegen
+
+# every time after cloning, or after editing project.yml
+xcodegen generate
+
+# open in Xcode and run
+open SideNote.xcodeproj
+# then ⌘R
+```
+
+Requirements:
+
+- Xcode 15+ (tested on 26.4)
+- macOS 14.0+ (Sonoma) as deployment target
+- No Apple Developer account needed for local dev (ad-hoc "Sign to Run Locally")
+
 ## v1 scope
 
 ### In

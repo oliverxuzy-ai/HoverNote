@@ -1,0 +1,81 @@
+name: SideNote
+options:
+  minimumXcodeGenVersion: "2.38.0"
+  deploymentTarget:
+    macOS: "14.0"
+  bundleIdPrefix: com.oliverxuzy
+  developmentLanguage: en
+  createIntermediateGroups: true
+  generateEmptyDirectories: false
+
+packages:
+  HotKey:
+    url: https://github.com/soffes/HotKey
+    from: "0.2.0"
+  swift-markdown:
+    url: https://github.com/apple/swift-markdown
+    branch: main
+
+targets:
+  SideNote:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: SideNote
+    dependencies:
+      - package: HotKey
+      - package: swift-markdown
+        product: Markdown
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.oliverxuzy.side-note
+        PRODUCT_NAME: SideNote
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.10"
+        SWIFT_STRICT_CONCURRENCY: minimal
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "-"
+        DEVELOPMENT_TEAM: ""
+        INFOPLIST_FILE: SideNote/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: SideNote/Resources/SideNote.entitlements
+        ENABLE_PREVIEWS: YES
+        DEAD_CODE_STRIPPING: YES
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  SideNoteTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: SideNoteTests
+    dependencies:
+      - target: SideNote
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.oliverxuzy.side-note.tests
+        SWIFT_VERSION: "5.10"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/SideNote.app/Contents/MacOS/SideNote"
+
+schemes:
+  SideNote:
+    build:
+      targets:
+        SideNote: all
+        SideNoteTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - SideNoteTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

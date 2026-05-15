@@ -1,0 +1,27 @@
+# Xcode / xcodegen
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+DerivedData/
+build/
+.build/
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+Packages/
+
+# macOS
+.DS_Store
+
+# Generated
+*.dSYM.zip
+*.dSYM
+
+# Local config
+.env
+.env.local
+secrets.json
