@@ -98,13 +98,16 @@ final class PanelController {
             width: PanelGeometry.totalWidth,
             height: PanelGeometry.totalHeight
         )
-        // 让 left buffer 区域（slideBuffer 宽）的点击穿透。右侧 visibleWidth (380) 才是
-        // 真正交互的侧边栏。
+        // 让 4 个非交互区域的点击穿透：
+        //   - 左 slideBuffer = 滑入缓冲区
+        //   - 顶/底/右 shadowMargin = 阴影渲染区
+        // 真正可交互区 = 中间偏右的 visibleWidth × visibleHeight 矩形（panel 几何里
+        // 唯一渲染 surface 的那块）。
         hosting.interactiveInsets = NSEdgeInsets(
-            top: 0,
+            top: PanelGeometry.shadowMargin,
             left: PanelGeometry.slideBuffer,
-            bottom: 0,
-            right: 0
+            bottom: PanelGeometry.shadowMargin,
+            right: PanelGeometry.shadowMargin
         )
         panel.contentView = hosting
         self.panel = panel

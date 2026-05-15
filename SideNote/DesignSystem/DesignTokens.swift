@@ -106,16 +106,24 @@ enum BorderWidth {
 }
 
 enum PanelGeometry {
-    /// 用户看到的"侧边栏"的可见宽度
+    /// 用户看到的"侧边栏"的可见宽度 / 高度
     static let visibleWidth:  CGFloat = 380
     static let visibleHeight: CGFloat = 720
-    /// 可见侧边栏与屏幕右边的间隙
-    static let edgeMargin:    CGFloat = 20
-    /// NSPanel 额外的"滑出缓冲区"——SwiftUI 把 surface offset 到这里 = 滑出屏幕外
-    /// 必须 >= visibleWidth 才能让 surface 完全消失出 panel 视野
-    static let slideBuffer:   CGFloat = 420
 
-    /// NSPanel 总宽 = 可见宽 + 滑出缓冲区（用于把 surface 隐藏到 panel 右侧外）
-    static var totalWidth:  CGFloat { visibleWidth + slideBuffer }
-    static var totalHeight: CGFloat { visibleHeight }
+    /// 可见侧边栏与屏幕右边的间隙 (= shadowMargin，确保右侧 shadow 不被屏幕裁掉)
+    static let edgeMargin:    CGFloat = 30
+
+    /// shadow 在 panel 4 个方向各自需要的渲染空间。
+    /// = max(shadow radius + |offset|)，决定 panel 在可见区周围预留多少透明区。
+    /// 顶/底/右各预留这么多；左已经有 slideBuffer 兜底。
+    static let shadowMargin:  CGFloat = 30
+
+    /// NSPanel 额外的"滑出缓冲区"——SwiftUI 把 surface offset 到这里 = 滑出屏幕外。
+    /// 必须 >= visibleWidth + shadowMargin 才能让 surface 连 shadow 一起完全隐藏。
+    static let slideBuffer:   CGFloat = 450
+
+    /// NSPanel 总宽 = 滑出缓冲区 + 可见宽 + 右 shadow 渲染区
+    static var totalWidth:  CGFloat { slideBuffer + visibleWidth + shadowMargin }
+    /// NSPanel 总高 = 可见高 + 上下 shadow 渲染区
+    static var totalHeight: CGFloat { visibleHeight + 2 * shadowMargin }
 }

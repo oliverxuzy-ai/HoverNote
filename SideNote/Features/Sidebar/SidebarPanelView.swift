@@ -25,16 +25,16 @@ struct SidebarPanelHost: View {
                     height: PanelGeometry.visibleHeight
                 )
                 // ---- 边框：让"软件边界"明确 ----
-                // 1pt 黑 @ 18% 在圆角上画一圈细线 —— 区分 App 和桌面
                 .overlay {
                     RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
                         .stroke(Color.black.opacity(0.18), lineWidth: 1)
                 }
-                // ---- 阴影：让 App 从屏幕"浮起来" ----
-                // 风险：SwiftUI `.shadow` 历史上会栅格化 view 算阴影，把 Material 冻死。
-                // 但 .regularMaterial 是 SwiftUI 原生 ShapeStyle，Apple 应当处理好了。
-                // 如果 Material 又看不见，就退到 NSView 的 CALayer.shadowOpacity（PanelController 里设）。
-                .shadow(color: .black.opacity(0.28), radius: 26, x: 0, y: 8)
+                // ---- 阴影：4 个方向均匀 ----
+                // radius 22 + y 4，extent 上 18 / 下 26 / 左右 22。
+                // panel 在 4 个方向各预留了 shadowMargin = 30pt，足够容纳。
+                .shadow(color: .black.opacity(0.30), radius: 22, x: 0, y: 4)
+                // 右侧 padding 让 surface 不贴在 HStack 右边 —— 留出 30pt 给 shadow 渲染
+                .padding(.trailing, PanelGeometry.shadowMargin)
                 .offset(x: controller.isPresented ? 0 : PanelGeometry.slideBuffer)
         }
         .frame(
