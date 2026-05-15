@@ -99,8 +99,8 @@ enum Radius {
 }
 
 enum BorderWidth {
-    /// 卡片、输入框、容器轮廓。比标准 1pt 略粗，在 glass 背景上更稳定可见。
-    static let hairline: CGFloat = 1.5
+    /// 卡片、输入框、容器轮廓。在 glass 背景上保持清晰可见。
+    static let hairline: CGFloat = 2
     /// 选中态左侧立柱、强调分隔线
     static let accent:   CGFloat = 2
 }
