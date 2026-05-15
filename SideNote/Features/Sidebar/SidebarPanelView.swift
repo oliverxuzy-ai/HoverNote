@@ -24,11 +24,17 @@ struct SidebarPanelHost: View {
                     width: PanelGeometry.visibleWidth,
                     height: PanelGeometry.visibleHeight
                 )
-                // NOTE: 不要在这里加 SwiftUI `.shadow`。`.shadow` 会让 SwiftUI 把整个
-                // view 栅格化成静态位图来算阴影 —— 这会把里面的 NSVisualEffectView
-                // 冻成一张快照（=毛玻璃失活）。阴影会在 M3 polish 时通过 CALayer
-                // 级别的方式加回来（PanelController 里给 hosting view 的 layer
-                // 设置 shadowOpacity/Radius/Offset，那是 GPU 渲染、不栅格化）。
+                // ---- 边框：让"软件边界"明确 ----
+                // 1pt 黑 @ 18% 在圆角上画一圈细线 —— 区分 App 和桌面
+                .overlay {
+                    RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
+                        .stroke(Color.black.opacity(0.18), lineWidth: 1)
+                }
+                // ---- 阴影：让 App 从屏幕"浮起来" ----
+                // 风险：SwiftUI `.shadow` 历史上会栅格化 view 算阴影，把 Material 冻死。
+                // 但 .regularMaterial 是 SwiftUI 原生 ShapeStyle，Apple 应当处理好了。
+                // 如果 Material 又看不见，就退到 NSView 的 CALayer.shadowOpacity（PanelController 里设）。
+                .shadow(color: .black.opacity(0.28), radius: 26, x: 0, y: 8)
                 .offset(x: controller.isPresented ? 0 : PanelGeometry.slideBuffer)
         }
         .frame(
