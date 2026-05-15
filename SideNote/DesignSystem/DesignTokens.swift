@@ -114,13 +114,14 @@ enum PanelGeometry {
     static let edgeMargin:    CGFloat = 30
 
     /// shadow 在 panel 4 个方向各自需要的渲染空间。
-    /// = max(shadow radius + |offset|)，决定 panel 在可见区周围预留多少透明区。
-    /// 顶/底/右各预留这么多；左已经有 slideBuffer 兜底。
-    static let shadowMargin:  CGFloat = 30
+    /// 必须 ≥ 2x(ambient shadow extent) 才能让阴影 alpha 在边缘衰减到 ~0（不可见）。
+    /// 三层 shadow 的最外层 ambient 是 radius 22 + offset 8 = 30pt 实际 extent，
+    /// 45pt margin 让边缘 alpha ≈ 0.026 * source（约不可见）。
+    static let shadowMargin:  CGFloat = 45
 
     /// NSPanel 额外的"滑出缓冲区"——SwiftUI 把 surface offset 到这里 = 滑出屏幕外。
     /// 必须 >= visibleWidth + shadowMargin 才能让 surface 连 shadow 一起完全隐藏。
-    static let slideBuffer:   CGFloat = 450
+    static let slideBuffer:   CGFloat = 460
 
     /// NSPanel 总宽 = 滑出缓冲区 + 可见宽 + 右 shadow 渲染区
     static var totalWidth:  CGFloat { slideBuffer + visibleWidth + shadowMargin }

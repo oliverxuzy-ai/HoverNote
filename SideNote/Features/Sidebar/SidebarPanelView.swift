@@ -29,10 +29,14 @@ struct SidebarPanelHost: View {
                     RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
                         .stroke(Color.black.opacity(0.18), lineWidth: 1)
                 }
-                // ---- 阴影：4 个方向均匀 ----
-                // radius 22 + y 4，extent 上 18 / 下 26 / 左右 22。
-                // panel 在 4 个方向各预留了 shadowMargin = 30pt，足够容纳。
-                .shadow(color: .black.opacity(0.30), radius: 22, x: 0, y: 4)
+                // ---- 阴影：三层堆叠，模拟自然光照 ----
+                // 单层 shadow 在边缘 alpha 突变 → 用户能看到一条"shadow 到这里就停了"的线。
+                // 三层叠加：contact（接触硬阴影）+ mid（中距）+ ambient（远柔光），
+                // 不同尺度的高斯衰减累积 → 整体呈现自然平滑的 falloff，无视觉边界。
+                // 参考：Material Design elevation / Linear / macOS NSPanel.hasShadow 的多层做法。
+                .shadow(color: .black.opacity(0.06), radius: 3,  x: 0, y: 1)   // contact
+                .shadow(color: .black.opacity(0.10), radius: 9,  x: 0, y: 3)   // mid
+                .shadow(color: .black.opacity(0.18), radius: 22, x: 0, y: 8)   // ambient
                 // 右侧 padding 让 surface 不贴在 HStack 右边 —— 留出 30pt 给 shadow 渲染
                 .padding(.trailing, PanelGeometry.shadowMargin)
                 .offset(x: controller.isPresented ? 0 : PanelGeometry.slideBuffer)
