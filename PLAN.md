@@ -1,0 +1,317 @@
+# Implementation Plan — side-note v1
+
+> 4 周个人项目节奏。从空目录到可下载 `.dmg`。
+> 北极星：**滑出 0.4 秒的身体状态变化**。每一个里程碑都为它服务。
+
+---
+
+## Goal
+
+3–4 周后产出一个 **能被下载的 `.dmg` 文件**，里面是一个 **作者自己每天用的 macOS App**，并能录一段 30 秒 demo 视频不脸红。
+
+## Definition of "usable v1" (作者自己用的最低门槛)
+
+以下全部为真 = 可用：
+
+1. **可靠开关**：菜单栏图标点击 / `⌃⇧Space` 热键 / 屏幕右边缘悬停三种方式任一都能稳定唤出
+2. **数据不丢**：写完笔记关掉 App 再开，笔记还在；Mac 崩溃重启后笔记还在
+3. **Markdown 渲染**：v1 8 类语法都能正确显示，渲染符合 `DESIGN.md` 排版规则
+4. **置顶有效**：pin 一条笔记，重启 App 后还在最上方
+5. **搜索能用**：`⌘F` 搜标题 + tags，结果实时过滤
+6. **自己日均触发 ≥ 8 次**（连续一周）
+
+---
+
+## Milestones
+
+```
+Week 0   Setup            (1–2 天)        →  能 build & run 一个空 SwiftUI 窗口
+Week 1   Slide-in spike   (5–7 天)        →  北极星验证：身体确实在松
+Week 2   Core read/write  (5–7 天)        →  能用：自己可以替代当前笔记习惯
+Week 3   Visual polish    (5–7 天)        →  能拍：30 秒 demo 不脸红
+Week 4   Ship             (3–5 天)        →  能下：.dmg 在 GitHub Releases
+```
+
+---
+
+## Milestone 0 · Project setup (~1–2 天)
+
+**Goal**：把脚手架立起来。
+
+**DoD**：在 Xcode 里 `⌘R` 能跑出一个空白 macOS 窗口，window title 是 "side-note"。
+
+### Tasks
+
+- [ ] 装好 Xcode 15+ 和 Command Line Tools
+- [ ] 在 repo 根目录 `mkdir SideNote && cd SideNote && xcodebuild ...` 或直接 Xcode → New Project → macOS → App，模板选 SwiftUI App，名字 `SideNote`，min deployment macOS 14.0
+- [ ] `.gitignore` 加 Xcode/Swift 标准模板：`xcuserdata/`、`*.xcuserstate`、`build/`、`.swiftpm/`、`Pods/`、`DerivedData/`
+- [ ] 安装下面三个依赖（Xcode → File → Add Package Dependencies）：
+  - `https://github.com/apple/swift-markdown` (latest)
+  - `https://github.com/soffes/HotKey` (latest)
+  - 可选：`https://github.com/sindresorhus/Defaults` (NSUserDefaults 的更好包装)
+- [ ] 设置 entitlements：禁用 sandbox（v1 不上 App Store，需要 CGEventTap），开 `com.apple.security.files.user-selected.read-write` 和 `com.apple.security.network.client = false`
+- [ ] 创建项目骨架（文件夹结构见下）
+- [ ] Git commit: "chore: scaffold SwiftUI app"
+
+### 文件夹骨架（建议）
+
+```
+SideNote/
+├── App/
+│   ├── SideNoteApp.swift          # @main 入口
+│   └── AppDelegate.swift          # 菜单栏 + 热键挂载
+├── Features/
+│   ├── Sidebar/                   # 主面板 SwiftUI
+│   │   ├── SidebarPanel.swift
+│   │   ├── NoteListView.swift
+│   │   ├── NoteCard.swift
+│   │   └── NoteDetailView.swift
+│   ├── Editor/                    # Markdown 编辑/渲染
+│   │   ├── MarkdownEditor.swift
+│   │   └── MarkdownRenderer.swift
+│   └── Settings/
+│       └── PreferencesView.swift
+├── Core/
+│   ├── Storage/                   # 文件系统笔记 IO
+│   │   ├── NoteStore.swift
+│   │   ├── NoteFile.swift
+│   │   └── FrontmatterCodec.swift
+│   ├── Triggers/                  # 三种触发方式
+│   │   ├── MenuBarController.swift
+│   │   ├── HotkeyService.swift
+│   │   └── EdgeHoverService.swift
+│   └── Window/
+│       ├── SlidePanel.swift       # NSPanel 子类
+│       └── VisualEffectView.swift # NSVisualEffectView 包装
+├── DesignSystem/
+│   ├── Colors.swift               # DESIGN.md 的 token 翻成 Color
+│   ├── Typography.swift           # PP Editorial New / General Sans 加载
+│   ├── Spacing.swift
+│   └── Motion.swift               # Animation 预设
+├── Resources/
+│   ├── Fonts/                     # PP Editorial New, General Sans
+│   └── Assets.xcassets
+└── SideNoteTests/
+```
+
+### Risk
+- Xcode 项目放在 git 里管理一些 `.xcodeproj` 内部文件会有 noise。可考虑用 [Tuist](https://tuist.io) 或 [XcodeGen](https://github.com/yonaskolb/XcodeGen) 从 yaml 生成 `.xcodeproj`，但 v1 不值得，直接 Xcode 默认。
+
+---
+
+## Milestone 1 · Slide-in spike (Week 1)
+
+**Goal**：验证北极星。在面板里塞硬编码的 3 条假笔记，但**滑入动画必须做对**。
+
+**DoD**：
+
+- 按 `⌃⇧Space` 后，一个 380×720 的面板从屏幕右边缘滑入，~380ms
+- 内容有 12pt parallax 延迟（panel 先到，content 后到）
+- canvas 颜色是 `#F1F2E9`，材质透过 NSVisualEffectView
+- 再按一次热键 / 点菜单栏 icon / 把鼠标移开 → 面板滑出
+- **录一段 5 秒视频自己看，是不是肩膀松了一下**——这是 GO / NO-GO gate
+
+### Tasks
+
+- [ ] `SlidePanel.swift`：继承 NSPanel，`styleMask: [.borderless, .nonactivatingPanel]`，`level: .floating`，`collectionBehavior: [.canJoinAllSpaces, .fullScreenAuxiliary]`
+- [ ] `VisualEffectView.swift`：NSViewRepresentable 包装 NSVisualEffectView (`.contentBackground`, `.behindWindow`)，叠 92% canvas 色
+- [ ] 滑入动画用 SwiftUI `.transition` + `interpolatingSpring(response: 0.32, dampingFraction: 0.78)`
+- [ ] 12pt content parallax: content 用单独的 `.offset(x:)` + 80ms 延迟 + 自己的 spring
+- [ ] 滑出: `easeIn(duration: 0.22)` 面板 + `easeIn(duration: 0.10)` content 透明
+- [ ] `HotkeyService.swift`: 用 `soffes/HotKey` 注册 `⌃⇧Space`，回调 toggle 面板
+- [ ] `MenuBarController.swift`: NSStatusItem，单击 toggle 面板
+- [ ] 硬编码 3 条假笔记在面板里展示（用 SwiftUI 直接写死，不接 storage）
+- [ ] 录视频自测
+
+### Risk + 应对
+
+| 风险                                                  | 应对                                                                                          |
+|------------------------------------------------------|----------------------------------------------------------------------------------------------|
+| NSPanel + SwiftUI transition 配合有 hack              | 用 `NSAnimationContext` 包 NSPanel frame 动画，content 用 SwiftUI transition；分两层各动各的     |
+| 边缘悬停需要 Accessibility 权限                       | Week 1 先不做边缘悬停，只做热键 + 菜单栏。边缘悬停推到 Week 2 末或 Week 3                       |
+| 滑入感觉不对                                          | 调参数（spring response 0.28 / 0.36 都试一下；parallax 8pt / 16pt 都试）；最差情况退回到 v0.1   |
+| **真的肩膀没松**                                      | **STOP。回到 `/office-hours` 重新审视北极星。这是这个项目最大的赌注**                          |
+
+---
+
+## Milestone 2 · Core read/write loop (Week 2)
+
+**Goal**：能用。自己开始替代当前的笔记习惯。
+
+**DoD**：v1 in scope 的功能除 visual polish 外全部跑通。每天用 ≥ 8 次。
+
+### Tasks
+
+#### Storage
+
+- [ ] `NoteFile.swift`: struct 表示一条笔记（id: ULID, title, body, pinned, tags, created, updated）
+- [ ] `FrontmatterCodec.swift`: 用 `Yams` 包做 YAML frontmatter 解析（依赖加上）
+- [ ] `NoteStore.swift`: 监听 `~/Documents/SideNote/` 目录的 `.md` 文件
+  - 启动时扫描所有 `.md` → 数组
+  - 用 FSEvents (`DispatchSource.makeFileSystemObjectSource`) 监听变化
+  - 写 = 原子写入（先写到 `.tmp` 文件再 rename，避免半写状态）
+  - CRUD: `new()` / `save(_:)` / `delete(_:)` / `togglePin(_:)`
+- [ ] 删除 = `FileManager.default.trashItem(...)`（送 Trash，不真删）
+
+#### Markdown
+
+- [ ] `MarkdownRenderer.swift`: 拿 `swift-markdown` 的 `Document` AST → 自写 SwiftUI render
+  - v1 子集 8 类: H1-H3, paragraph, ul, ol, inline code, code block, blockquote, bold/italic, link
+  - 不支持的语法（image, table, task list）**原样显示文本**，不报错
+  - 渲染规则严格照 `DESIGN.md` 走
+
+#### Editor
+
+- [ ] `MarkdownEditor.swift`: 一个 NSTextView (NSViewRepresentable) 包装
+  - 编辑时显示纯文本 + 语法高亮（H1 加粗、code 等宽）
+  - 失焦或 `⌘S` 保存（实际上是 debounce 自动保存）
+  - 切换到"查看模式"时显示渲染后的 SwiftUI 视图（v1.1 再做 "live preview"，先做 toggle）
+
+#### UI
+
+- [ ] `NoteListView.swift`: 笔记列表，pinned 优先 + updated 倒序
+- [ ] `NoteCard.swift`: 一条卡片，DESIGN.md 规格
+- [ ] `NoteDetailView.swift`: 选中后展示笔记内容（点击切到 detail）
+- [ ] 基础操作快捷键: `⌘N` 新建 / `⌘⌫` 删除 / `⌘F` 搜索 / `⌘P` toggle pin
+- [ ] 搜索 UI: 顶部搜索框（DESIGN.md 已规范）模糊匹配标题 + tags
+- [ ] 外部修改冲突提示: FSEvents 检测到当前编辑文件被外部改 → 顶部条 "外部已变更 [查看 diff] [覆盖本地] [保留本地]"（DESIGN.md 规范）
+
+### Risk + 应对
+
+| 风险                                              | 应对                                                                  |
+|---------------------------------------------------|-----------------------------------------------------------------------|
+| 自写 Markdown 渲染层耗时 > 2 周                   | 退路：v1 用 `MarkdownUI` 第三方包，v1.1 替换为自写；接受 visual 80% 准 |
+| YAML frontmatter 解析在 corner case 上挂          | `Yams` 是工业级，但要测：emoji 标题、含 `:` 的标题、空 frontmatter      |
+| 编辑器和渲染同步状态混乱                          | v1 用 "编辑 / 查看" 两个明确模式，不做 live preview                     |
+
+---
+
+## Milestone 3 · Visual polish (Week 3)
+
+**Goal**：能拍 30 秒 demo 视频不脸红。
+
+**DoD**：
+
+- DESIGN.md 里所有视觉规则都落地
+- 录 30 秒视频展示 滑入 → 切换笔记 → 创建笔记 → 置顶 → 滑出
+- 视频自己看一遍 + 第二天再看一遍，都不觉得"哪里不对"
+
+### Tasks
+
+- [ ] **Typography**：加载 PP Editorial New + General Sans + JetBrains Mono 字体
+  - 把 `.otf` 文件放到 `Resources/Fonts/`
+  - `Info.plist` 注册 `ATSApplicationFontsPath`
+  - 写 `Typography.swift` 暴露 `Font.display(size:)` / `Font.body(size:)` 等
+- [ ] **颜色 token 落地**: `Colors.swift` 暴露 `Color.canvas`, `Color.accent` 等，从 Asset Catalog 读
+- [ ] **置顶图钉**: 用 SwiftUI Shape 画 ceramic 图钉（DESIGN.md 规格：12×18pt，linear gradient，rotate 8°，shadow + inset highlight）
+- [ ] **选中态**: 卡片左 2pt accent 立柱（inset shadow）、背景拉到 88% 不透明白
+- [ ] **链接样式**: `text-color: accent-deep`, `underline-color: accent-soft`, offset 2pt
+- [ ] **代码块**: JetBrains Mono 13.5pt + 背景 `rgba(31,30,24, 0.04)` + 1px hairline border
+- [ ] **微动效**: 卡片 hover 120ms ease-out、图钉 press spring-fast 0.96→1.0、选中切换 120ms ease-out
+- [ ] **边缘悬停触发**（推到这里因为需要 Accessibility 权限引导 UX）:
+  - `EdgeHoverService.swift`: CGEventTap 监听全局鼠标位置
+  - 首启动 Preferences 默认关闭，开关时 `AXIsProcessTrustedWithOptions` 请求权限
+  - 引导文案 + 深链到 System Settings → Privacy & Security → Accessibility
+- [ ] **录 demo 视频**（用 QuickTime 屏幕录制）
+
+### Risk
+
+| 风险                                                       | 应对                                                          |
+|------------------------------------------------------------|---------------------------------------------------------------|
+| 自定义字体在 SwiftUI 里嵌入有 corner case                  | Apple 文档：`Info.plist` + `Resources/Fonts/` + `.font(.custom(_:size:))`；测试 |
+| ceramic 图钉用纯 SwiftUI Shape 画不出来                    | 退路：用 SF Symbols 的 `pin.fill` + tint + rotation，简化为图标层 |
+| 边缘悬停首启动 UX 卡住                                     | 引导文案做到极简：3 步图示，1 张截图；被拒绝走降级 fallback     |
+
+---
+
+## Milestone 4 · Ship (Week 4)
+
+**Goal**：能下载。`.dmg` 挂在 GitHub Releases，朋友能拖进 Applications 直接用。
+
+**DoD**：
+
+- 你把 GitHub Releases 链接发给一个 mac 朋友，他能：① 下载 ② 双击 mount ③ 拖 .app 到 Applications ④ 右键打开 ⑤ 用起来
+- README 加截图 + demo gif/视频
+
+### Tasks
+
+#### 签名
+
+- [ ] 决定路线：A) 不签 + Gatekeeper 警告 + 用户右键打开 (免费) OR B) 买 $0/年 Apple Developer 账户做 Developer ID 签名
+- [ ] **推荐 A**（v1 接受首启动右键打开，README 写清楚）；v2 再上 B + Notarization
+- [ ] 如果 A：Xcode 里 Signing & Capabilities 选 "Sign to Run Locally"
+
+#### 打包
+
+- [ ] Xcode → Product → Archive → 导出 .app
+- [ ] 用 [`create-dmg`](https://github.com/sindresorhus/create-dmg)（最简单的 .dmg 制作工具）：
+  ```bash
+  brew install create-dmg
+  create-dmg \
+    --volname "side-note" \
+    --window-pos 200 120 \
+    --window-size 600 400 \
+    --icon-size 100 \
+    --icon "SideNote.app" 175 200 \
+    --hide-extension "SideNote.app" \
+    --app-drop-link 425 200 \
+    "side-note-0.1.0.dmg" \
+    "SideNote.app"
+  ```
+- [ ] 装饰 .dmg 背景图（可选，但 demo 视频会用到）：放一张设计过的 PNG 在 `.dmg` 挂载视图里
+
+#### 发布
+
+- [ ] GitHub Releases → New Release → tag `v0.1.0`
+- [ ] 上传 `side-note-0.1.0.dmg`
+- [ ] Release notes：1 段 "Why I built this" + 截图 + demo 链接 + "右键打开" 引导
+- [ ] README 加：
+  - Hero 截图（侧边栏滑出的样子）
+  - 30 秒 demo 视频或 gif
+  - Download 链接
+  - 首启动 Gatekeeper 引导（"右键 → Open"）
+
+#### CI/CD（v1 可跳过）
+
+- [ ] **v1 手动构建发布**（每次 ~5 分钟，OK）
+- [ ] v2 再上 GitHub Actions: tag 触发 → `xcodebuild archive` → `create-dmg` → 自动 upload release
+
+### Risk
+
+| 风险                                                | 应对                                                       |
+|-----------------------------------------------------|------------------------------------------------------------|
+| 首启动 Gatekeeper 把朋友劝退                        | README 第一行做引导；动图演示右键 → Open；接受少量摩擦      |
+| `.dmg` 装饰背景图调起来花时间                       | v1 用 `create-dmg` 默认样式（也够干净）；装饰图推到 v1.1   |
+| 朋友的 Mac 不是 macOS 14+                           | README 写明 min macOS 14.0；Gatekeeper 会直接拒绝旧系统     |
+
+---
+
+## 进度跟踪建议
+
+- 每个 milestone 结束写一段 200 字的"实际 vs 计划"小结，提交到 `~/.gstack/projects/side-note/retro-week-N.md`
+- 跑 `/retro` 让 gstack 帮你看进度模式
+- 卡住超过 1 天的事项 → 跑 `/investigate` 看是不是钻牛角尖了
+- 写完 Week 1 跑 `/plan-eng-review` 审你的代码架构（NSPanel + SwiftUI transition、CGEventTap、自写 Markdown 渲染都是技术坑，外部审一遍很值）
+
+---
+
+## 分发格式速查（你的问题答案）
+
+| 格式      | 用途                          | 你需要吗？                                                                 |
+|-----------|------------------------------|----------------------------------------------------------------------------|
+| **`.app`** | Mac 应用本体（一个 bundle 文件夹）| Xcode 构建出来的就是它。运行时操作系统认这个。                              |
+| **`.dmg`** ✅ | 分发用的"虚拟磁盘"，里面装一个 `.app` | **v1 用这个**。用户双击挂载、拖进 Applications。Mac 公开分发的标准。       |
+| `.zip`    | 简易分发：直接打 `.app` 成 zip   | 能用但不专业；解压后用户还要手动拖到 Applications，少一步引导               |
+| `.pkg`    | 安装器（适合复杂安装：多文件、需要后台脚本等） | 不需要。side-note 是单 .app，没安装步骤                                  |
+
+**v1 路径**：Xcode → Archive → 导出 `.app` → `create-dmg` 包成 `.dmg` → GitHub Releases 上传 → 链接发出去。**单人路径全程 ~5 分钟手工劳动**。
+
+---
+
+## 下一步建议
+
+1. **现在就做**：跑 Milestone 0（脚手架），1-2 天能完成
+2. **Milestone 1 开始前**：跑一次 `/plan-eng-review` 审 NSPanel + SwiftUI transition + parallax 这一坨技术决策
+3. **Milestone 1 录完 demo 视频后**：你身体的反应是 GO / NO-GO gate。这是这个项目最重要的 checkpoint，不要跳过
+
+**记住 milestone 1 的 GO/NO-GO**：如果北极星没兑现（滑入没有让肩膀松），整个项目假设就动摇了。那时候应该 `/office-hours` 重新审一遍，而不是硬着头皮往后做。
