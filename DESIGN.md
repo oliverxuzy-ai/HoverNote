@@ -31,26 +31,22 @@
 ### Light Theme（v1 已锁定）
 
 ```
-═══ CANVAS — 3-layer glass composition (M1 升级 from 92% 不透明叠层) ═══
+═══ CANVAS — SwiftUI Material 3-layer composition (M1 第三次升级) ═══
 
-Layer 1 (底)：NSVisualEffectView
-              material: .sidebar          (Finder / Apple Notes / Things 3 侧栏所用)
-              blendingMode: .behindWindow (透到桌面壁纸)
-              state: .active              (失焦不变暗)
+Layer 1 (底)：SwiftUI `.regularMaterial`
+              （macOS 12+ SwiftUI 原生玻璃材质，对应 Apple Notes / Finder 侧栏体感）
+              用 `Rectangle().fill(.regularMaterial)`，**不**用 NSVisualEffectView
 
-Layer 2 (中)：Color #C1C5B0 @ opacity 0.12   /* sage 染色层 */
-              把整体往 sage 方向轻轻拉，不让 App 完全跟着壁纸跑
+Layer 2 (中)：Color #C1C5B0 @ opacity 0.10   /* sage 染色层 */
+              比 NSVisualEffectView 路线低（之前 0.12），因为 Material 自己就略偏暖
 
-Layer 3 (上)：Color #FFFEFA @ opacity 0.45   /* 暖白 wash */
-              保证 readability：在极暗壁纸下不至于整个变黑
+Layer 3 (上)：Color #FFFEFA @ opacity 0.20   /* 暖白 wash */
+              比 NSVisualEffectView 路线大幅降低（之前 0.45），因为 Material 玻璃感强，
+              过厚 wash 会盖死 vibrancy。20% 是"可读 + 仍能感受到桌面颜色"的平衡点
 
-净可见 ≈ 桌面壁纸 ~50% 透过 + sage tint 12% + 暖白 45%
-体感：和 Apple Notes / Things 3 / Finder 的侧栏同一种"半透明玻璃"语言
-不同桌面差异显著：暗壁纸 → 偏深偏冷；浅壁纸 → 接近 sage 白；彩色壁纸 → 接受染色
-
-设计意图（M1 实测确认）：「肩膀松那一下」不来自一个静态颜色，来自一种
-**"有内容透过来"的物质感**——你眼睛感知到这是一块"和环境相连的玻璃"
-而不是"一个贴在屏幕上的色块"，才会真的松一下。
+设计意图：参考 Apple Notes / Finder 侧栏的"半透明玻璃"语言。
+不同桌面差异显著：暗壁纸 → App 偏深偏冷；浅壁纸 → 接近 sage 白；彩色壁纸 → 接受染色。
+「肩膀松那一下」不来自静态颜色，来自一种"有内容透过来"的物质感。
 
 ═══ SURFACE (cards, lists, inputs — 玻璃之上的半透明白卡) ═══
 surface            rgba(255, 255, 255, 0.55)   /* 半透明白卡片 */
@@ -273,3 +269,5 @@ v1.1 推迟：图片、表格、任务列表、脚注、删除线、嵌套引用
 | 2026-05-14  | 滑入: 320ms spring + 12pt content parallax 80ms 延迟                | 把面板和内容拆成两层，眼睛感知层次而非位移；spring response 0.32, damping 0.78                     |
 | 2026-05-14  | M1 实测：canvas 从 92% 不透明叠层 → full glass (3-layer composition)  | 用户："没看到像 macOS 原生那样背景颜色会泛上来"。92% 让 vibrancy 几乎不可见，违背"有玻璃感"的初衷    |
 | 2026-05-14  | M1 实测：放弃"NSPanel 滑窗口位置"，改为"NSPanel 固定 + SwiftUI 内部 slide" | 玻璃变明显后窗口移动每帧重算 vibrancy 卡感更刺眼；改成单一 SwiftUI spring 驱动单层 slide，无 NSAnimationContext |
+| 2026-05-14  | 移除 SwiftUI `.shadow` 修饰符（暂时无阴影）                            | `.shadow` 把整个面板栅格化成位图算阴影，导致 NSVisualEffectView 的活体毛玻璃被冻成快照。阴影留到 M3 polish 用 CALayer 级别加回 |
+| 2026-05-14  | NSVisualEffectView → SwiftUI `.regularMaterial`（macOS 12+ 原生 API） | 参考 Deck 开源项目的实现。NSVisualEffectView 通过 NSViewRepresentable 包装进 SwiftUI 时各种兼容性 bug（透明度、clipShape、shadow 都易出问题）；SwiftUI 原生 Material 是 ShapeStyle，无包装层，Apple 官方推荐 |

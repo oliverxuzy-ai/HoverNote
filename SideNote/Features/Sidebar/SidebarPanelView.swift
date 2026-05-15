@@ -53,10 +53,22 @@ struct SidebarPanelView: View {
 
     var body: some View {
         ZStack {
-            // ---- 3-layer glass composition ----
-            VisualEffectBackground(material: .sidebar)
-            Color.glassSageTint.opacity(0.12)
-            Color.glassWarmWash.opacity(0.45)
+            // ---- Layer 1: SwiftUI 原生玻璃材质 ----
+            // 用 SwiftUI 的 .regularMaterial (macOS 12+)，不是 NSVisualEffectView
+            // 包装。SwiftUI 自己管 vibrancy 合成，无 .shadow/clipShape 兼容性 bug。
+            // Material 等级：.ultraThinMaterial < .thinMaterial < .regularMaterial
+            // < .thickMaterial < .ultraThickMaterial。Finder/Notes 侧栏体感 ≈ regular。
+            Rectangle().fill(.regularMaterial)
+
+            // ---- Layer 2: sage 染色层（10%）----
+            // .regularMaterial 本身已经把 App 拉得很接近 Mac 系统色（中性灰白），
+            // 这层把它往 sage 方向拉一点点，保住品牌身份。
+            Color.glassSageTint.opacity(0.10)
+
+            // ---- Layer 3: 暖白 wash（20%）----
+            // 比之前 45% 大幅降低 —— material 本身玻璃感强，wash 厚了会盖死 vibrancy。
+            // 20% 是"可读 + 仍能感受到桌面颜色"的平衡点。
+            Color.glassWarmWash.opacity(0.20)
 
             // ---- content ----
             contentLayer
