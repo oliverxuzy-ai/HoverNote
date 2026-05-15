@@ -99,9 +99,9 @@ SideNote/
 
 ---
 
-## Milestone 1 · Slide-in spike (Week 1)
+## Milestone 1 · Slide-in spike ✅ COMPLETE
 
-**Goal**：验证北极星。在面板里塞硬编码的 3 条假笔记，但**滑入动画必须做对**。
+**Goal**：验证北极星。在面板里塞硬编码的 4 条假笔记，**滑入动画必须做对**。
 
 **DoD**：
 
@@ -110,6 +110,30 @@ SideNote/
 - canvas 颜色是 `#F1F2E9`，材质透过 NSVisualEffectView
 - 再按一次热键 / 点菜单栏 icon / 把鼠标移开 → 面板滑出
 - **录一段 5 秒视频自己看，是不是肩膀松了一下**——这是 GO / NO-GO gate
+
+### 实际交付（vs 计划的偏离）
+
+实际实施过程中根据真机体验做了几次架构调整。**北极星身体测试通过**（用户："卡顿解决了"+"玻璃可以"+"阴影对了"），M1 GO。
+
+主要偏离：
+
+| 原计划 | 实际 | 原因 |
+|--------|------|------|
+| NSPanel 用 NSAnimationContext 滑动位置 + SwiftUI 内容做 parallax | NSPanel 不动，单一 SwiftUI spring 驱动 surface offset | 两套时钟 + 系统每帧重算 vibrancy/shadow = 卡 |
+| NSVisualEffectView 包装为 NSViewRepresentable 做 vibrancy | SwiftUI 原生 `.regularMaterial` (`Rectangle().fill(.regularMaterial)`) | NSViewRepresentable 包装层和 `.shadow`/`.clipShape` 各种兼容性 bug，参考 yuzeguitarist/Deck 改用 Apple 推荐方式 |
+| canvas 92% 不透明 + vibrancy 微微呼吸 | full glass 三层合成（`.regularMaterial` + sage tint 10% + 暖白 wash 20%） | 用户："没看到像 macOS 原生那样背景颜色会泛上来" |
+| NSPanel.hasShadow = true 矩形系统阴影 | SwiftUI 三层堆叠 shadow (contact/mid/ambient) + panel 四向 shadowMargin 45pt | 单层 shadow 边界硬，参考 Material Design elevation 改三层模拟自然光照 |
+| terracotta accent 暖色 | sage monochrome 系统 | 用户："不喜欢这个土地红色的高光"（也已在 DESIGN.md 锁定） |
+
+### M1 推迟到 M3 polish 的项
+
+代码里已留 TODO / 注释指明：
+
+- **边缘悬停触发**（CGEventTap + Accessibility 权限引导）—— 当前只有菜单栏点击 + ⌃⇧Space
+- **真 PP Editorial New 字体加载**—— 当前用系统衬线 `New York`
+- **点击 surface 外区域 dismiss**—— 当前只能再按热键或菜单栏关
+- **置顶 pin 拖动物理弹回**—— 当前只有静态 ceramic 图钉
+- **shadow 进一步调参**—— 用户当前接受度："好多了，先收尾吧，到时候再改"
 
 ### Tasks
 
