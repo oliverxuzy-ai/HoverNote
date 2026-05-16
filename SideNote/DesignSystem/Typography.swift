@@ -1,22 +1,62 @@
 import SwiftUI
+import AppKit
 
 /// DESIGN.md 字号梯度的唯一出处。
 ///
-/// **M2 现状**：DESIGN.md 指定 PP Editorial New / General Sans / JetBrains Mono，
-/// 但字体文件加载是 M3 polish 的任务。M2 用系统回退（serif=New York、
-/// sans=系统、mono=系统等宽），但**字号 / 行距 / 字重严格照 DESIGN.md**。
-/// M3 只需把下面三个 `family*` 改成 `.custom(...)`，其余调用点不动。
+/// 三族字体（M3 加载，运行时由 `FontRegistration` 注册进进程）：
+/// - Display：PP Editorial New（标题 / H1-H3 / 斜体强调）
+/// - Body：General Sans（UI + 正文 + 列表）
+/// - Mono：JetBrains Mono（代码块 / 行内 code）
+///
+/// **优雅回退**：某个家族没打包成功（例如 PP Editorial New 需手动从
+/// pangrampangram.com 取，可能暂缺）→ 自动回退到对应系统字形
+/// （display→serif New York / sans→系统 / mono→系统等宽），永不空白、不崩。
+/// 字号 / 行距 / 字重严格照 DESIGN.md，与回退与否无关。
 enum Typography {
 
-    // 切到自定义字体时只改这三处（M3）。
+    // MARK: - Family availability (注册后查一次)
+
+    private static func has(_ psName: String) -> Bool {
+        NSFont(name: psName, size: 12) != nil
+    }
+
+    private static let displayRegularPS = ["PPEditorialNew-Regular", "PPEditorialNew-Ultralight"]
+        .first(where: has)
+    private static let displayItalicPS = ["PPEditorialNew-Italic", "PPEditorialNew-RegularItalic"]
+        .first(where: has)
+    private static let hasSans = has("GeneralSans-Regular")
+    private static let hasMono = has("JetBrainsMono-Regular")
+
+    // MARK: - Builders
+
     private static func display(_ size: CGFloat, _ weight: Font.Weight) -> Font {
-        .system(size: size, weight: weight, design: .serif)
+        if let ps = displayRegularPS { return .custom(ps, fixedSize: size) }
+        return .system(size: size, weight: weight, design: .serif)
     }
+
+    /// 斜体强调：DESIGN.md 唯一刻意的 cross-family fallthrough（切到 PP Editorial New Italic）。
+    static func displayItalic(_ size: CGFloat) -> Font {
+        if let ps = displayItalicPS { return .custom(ps, fixedSize: size) }
+        return .system(size: size, weight: .regular, design: .serif).italic()
+    }
+
     private static func sans(_ size: CGFloat, _ weight: Font.Weight) -> Font {
-        .system(size: size, weight: weight)
+        guard hasSans else { return .system(size: size, weight: weight) }
+        let ps: String
+        switch weight {
+        case .semibold, .bold: ps = "GeneralSans-Semibold"
+        case .medium:          ps = "GeneralSans-Medium"
+        default:               ps = "GeneralSans-Regular"
+        }
+        return .custom(ps, fixedSize: size)
     }
+
+    /// 行内粗体：DESIGN.md = General Sans Semibold（600）。
+    static func bold(_ size: CGFloat) -> Font { sans(size, .semibold) }
+
     private static func mono(_ size: CGFloat) -> Font {
-        .system(size: size, weight: .regular, design: .monospaced)
+        guard hasMono else { return .system(size: size, weight: .regular, design: .monospaced) }
+        return .custom("JetBrainsMono-Regular", fixedSize: size)
     }
 
     // MARK: - Display (PP Editorial New)

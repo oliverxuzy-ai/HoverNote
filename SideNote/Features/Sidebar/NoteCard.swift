@@ -59,9 +59,12 @@ struct NoteCard: View {
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
-            .shadow(color: .black.opacity(0.04), radius: 1, y: 1)
+            // 选中态阴影微强（DESIGN.md：选中卡片「阴影微强」）
+            .shadow(color: .black.opacity(selected ? 0.07 : 0.04),
+                    radius: selected ? 2 : 1, y: 1)
             .onHover { hovering = $0 }
-            .animation(.hover, value: hovering)
+            .animation(.cardState, value: hovering)   // 卡片 hover 120ms ease-out
+            .animation(.cardState, value: selected)   // 选中切换 120ms ease-out
 
             if note.pinned {
                 CeramicPin()

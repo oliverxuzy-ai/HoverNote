@@ -15,13 +15,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     let noteStore = NoteStore()
     lazy var panelController = PanelController(store: noteStore)
+    lazy var edgeHover = EdgeHoverService(
+        isPresented: { [weak self] in self?.panelController.isPresented ?? false },
+        onTrigger:   { [weak self] in self?.panelController.open() }
+    )
 
     private var aboutWindow: NSWindow?
+    private var preferencesWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        FontRegistration.registerBundledFonts()  // 必须在任何 SwiftUI 视图构建前
         noteStore.bootstrap()
         panelController.bootstrap()
-        NSLog("[side-note] M2 launched. ⌃⇧Space or click menu bar to slide.")
+        applyEdgeHoverSetting()
+        NSLog("[side-note] M3 launched. ⌃⇧Space / menu bar / edge-hover (opt-in).")
+    }
+
+    // MARK: - Edge hover
+
+    /// 按 UserDefaults 开关 + AX 信任态决定 tap 起停。Preferences 改动后也调它。
+    func applyEdgeHoverSetting() {
+        let enabled = UserDefaults.standard.bool(forKey: "edgeHoverEnabled")
+        if enabled && EdgeHoverService.hasAccessibility {
+            edgeHover.start()
+        } else {
+            edgeHover.stop()
+        }
     }
 
     // MARK: - Sidebar
@@ -46,6 +65,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         win.center()
         win.isReleasedWhenClosed = false
         aboutWindow = win
+        win.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    // MARK: - Preferences
+
+    func openPreferences() {
+        if let win = preferencesWindow {
+            win.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        let view = PreferencesView(
+            onToggle: { [weak self] _ in self?.applyEdgeHoverSetting() },
+            isAXTrusted: { EdgeHoverService.hasAccessibility },
+            requestAX: { EdgeHoverService.requestAccessibility() }
+        )
+        let hosting = NSHostingController(rootView: view)
+        let win = NSWindow(contentViewController: hosting)
+        win.title = "side-note Preferences"
+        win.styleMask = [.titled, .closable]
+        win.setContentSize(NSSize(width: 380, height: 260))
+        win.center()
+        win.isReleasedWhenClosed = false
+        preferencesWindow = win
         win.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }

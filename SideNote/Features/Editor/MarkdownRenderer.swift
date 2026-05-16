@@ -33,12 +33,12 @@ private struct MarkdownBlock: View {
         switch block {
 
         case let h as Heading:
-            Text(InlineRenderer.attributed(h, base: headingFont(h.level)))
+            Text(InlineRenderer.attributed(h, base: headingFont(h.level), baseSize: headingSize(h.level)))
                 .lineSpacing(2)
                 .padding(.top, h.level == 1 ? 2 : 6)
 
         case let p as Paragraph:
-            Text(InlineRenderer.attributed(p, base: Typography.body))
+            Text(InlineRenderer.attributed(p, base: Typography.body, baseSize: 15))
                 .foregroundStyle(.textPrimary)
                 .lineSpacing(Typography.bodyLineSpacing)
 
@@ -75,7 +75,7 @@ private struct MarkdownBlock: View {
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(Array(q.blockChildren.enumerated()), id: \.offset) { _, child in
                     if let p = child as? Paragraph {
-                        Text(InlineRenderer.attributed(p, base: Typography.body))
+                        Text(InlineRenderer.attributed(p, base: Typography.body, baseSize: 15))
                             .foregroundStyle(.textMuted)
                             .lineSpacing(Typography.bodyLineSpacing)
                     } else {
@@ -100,7 +100,7 @@ private struct MarkdownBlock: View {
                     VStack(alignment: .leading, spacing: 6) {
                         ForEach(Array(item.blockChildren.enumerated()), id: \.offset) { _, child in
                             if let p = child as? Paragraph {
-                                Text(InlineRenderer.attributed(p, base: Typography.listItem))
+                                Text(InlineRenderer.attributed(p, base: Typography.listItem, baseSize: 13))
                                     .foregroundStyle(.textPrimary)
                                     .lineSpacing(Typography.listLineSpacing)
                             } else {
@@ -119,6 +119,14 @@ private struct MarkdownBlock: View {
         case 1:  return Typography.h1
         case 2:  return Typography.h2
         default: return Typography.h3
+        }
+    }
+
+    private func headingSize(_ level: Int) -> CGFloat {
+        switch level {
+        case 1:  return 28
+        case 2:  return 21
+        default: return 17
         }
     }
 }
@@ -150,10 +158,12 @@ private struct CodeBlockView: View {
 enum InlineRenderer {
 
     /// 把一个含 inline 子节点的块（段落 / 标题…）拍平成带样式的 AttributedString。
-    static func attributed(_ markup: Markup, base: Font) -> AttributedString {
+    /// `baseSize` 让 bold/italic 能换到对应字号的正确字体（DESIGN.md：
+    /// 粗体=General Sans Semibold，斜体=PP Editorial New Italic 这个刻意的 cross-family）。
+    static func attributed(_ markup: Markup, base: Font, baseSize: CGFloat) -> AttributedString {
         var out = AttributedString()
         for child in markup.children {
-            out.append(render(child, base: base))
+            out.append(render(child, base: base, baseSize: baseSize))
         }
         if out.runs.isEmpty {
             out = AttributedString(" ")
@@ -161,7 +171,7 @@ enum InlineRenderer {
         return out
     }
 
-    private static func render(_ markup: Markup, base: Font) -> AttributedString {
+    private static func render(_ markup: Markup, base: Font, baseSize: CGFloat) -> AttributedString {
         switch markup {
 
         case let t as Markdown.Text:
@@ -170,13 +180,13 @@ enum InlineRenderer {
             return s
 
         case let s as Strong:
-            var inner = concat(s, base: base)
-            inner.font = base.weight(.semibold)
+            var inner = concat(s, base: base, baseSize: baseSize)
+            inner.font = Typography.bold(baseSize)   // General Sans Semibold
             return inner
 
         case let e as Emphasis:
-            var inner = concat(e, base: base)
-            inner.font = base.italic()
+            var inner = concat(e, base: base, baseSize: baseSize)
+            inner.font = Typography.displayItalic(baseSize)  // PP Editorial New Italic
             return inner
 
         case let c as InlineCode:
@@ -189,12 +199,14 @@ enum InlineRenderer {
             return s
 
         case let link as Markdown.Link:
-            var inner = concat(link, base: base)
+            var inner = concat(link, base: base, baseSize: baseSize)
             if let dest = link.destination, let url = URL(string: dest) {
                 inner.link = url
             }
+            // DESIGN.md: 文字 accent-deep，下划线 accent-soft。
+            // 用 SwiftUI scope 的 Text.LineStyle(color:)，不碰易碎的 AppKit 属性 scope。
             inner.foregroundColor = .sageDeep
-            inner.underlineStyle = .single
+            inner.underlineStyle = Text.LineStyle(pattern: .solid, color: .sageSoft)
             return inner
 
         case is SoftBreak:
@@ -213,7 +225,7 @@ enum InlineRenderer {
         default:
             // 其他 inline：递归取文本
             if markup.childCount > 0 {
-                return concat(markup, base: base)
+                return concat(markup, base: base, baseSize: baseSize)
             }
             var s = AttributedString(markup.format())
             s.font = base
@@ -221,10 +233,10 @@ enum InlineRenderer {
         }
     }
 
-    private static func concat(_ markup: Markup, base: Font) -> AttributedString {
+    private static func concat(_ markup: Markup, base: Font, baseSize: CGFloat) -> AttributedString {
         var out = AttributedString()
         for child in markup.children {
-            out.append(render(child, base: base))
+            out.append(render(child, base: base, baseSize: baseSize))
         }
         return out
     }

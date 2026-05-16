@@ -19,6 +19,11 @@ struct SideNoteApp: App {
 
             Divider()
 
+            Button("Preferences…") {
+                appDelegate.openPreferences()
+            }
+            .keyboardShortcut(",", modifiers: [.command])
+
             Button("About side-note") {
                 appDelegate.openAbout()
             }

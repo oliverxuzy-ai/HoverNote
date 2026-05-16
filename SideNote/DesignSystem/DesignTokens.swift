@@ -76,7 +76,11 @@ extension Animation {
     /// Hover / 状态切换通用过渡。
     static let hover = Animation.easeOut(duration: 0.16)
 
-    /// 按钮按下、图钉触发等微反馈。
+    /// 卡片 hover + 选中切换。DESIGN.md「其他 motion」明确写 120ms ease-out，
+    /// 比通用 hover(160ms) 略快——卡片要"跟手"。
+    static let cardState = Animation.easeOut(duration: 0.12)
+
+    /// 按钮按下、图钉触发等微反馈。DESIGN.md：图钉按下 spring-fast 0.96→1.0。
     static let pressFeedback = Animation.spring(duration: 0.18, bounce: 0.14)
 }
 

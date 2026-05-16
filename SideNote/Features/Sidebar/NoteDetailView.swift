@@ -13,6 +13,7 @@ struct NoteDetailView: View {
 
     @State private var draft: NoteFile?
     @State private var editing = false
+    @State private var pinScale: CGFloat = 1.0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -62,10 +63,14 @@ struct NoteDetailView: View {
 
             Button {
                 if let d = draft { store.togglePin(d); draft?.pinned.toggle() }
+                // DESIGN.md：图钉按下 spring-fast 0.96 → 1.0
+                pinScale = 0.96
+                withAnimation(.pressFeedback) { pinScale = 1.0 }
             } label: {
                 Image(systemName: (draft?.pinned ?? false) ? "pin.fill" : "pin")
                     .font(.system(size: 13))
                     .foregroundStyle((draft?.pinned ?? false) ? .sage : .textFaint)
+                    .scaleEffect(pinScale)
             }
             .buttonStyle(.plain)
 
