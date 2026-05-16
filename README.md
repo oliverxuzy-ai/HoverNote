@@ -206,7 +206,8 @@ asks you to pre-classify. The app rewards writing, not filing.
 
 Bundled third-party fonts keep their own licenses and are **not** covered by
 MIT: General Sans (Fontshare free license), JetBrains Mono (Apache-2.0), and
-PP Editorial New (Pangram Pangram terms, if added). See [`LICENSE`](LICENSE).
+PP Editorial New (Pangram Pangram terms, if added). See
+[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
 ---
 

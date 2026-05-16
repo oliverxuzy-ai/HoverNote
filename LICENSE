@@ -19,14 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-Bundled third-party fonts retain their own licenses and are NOT covered by the
-MIT license above:
-
-- General Sans — Indian Type Foundry, via Fontshare (free license:
-  https://www.fontshare.com/licenses/itf-ffl)
-- JetBrains Mono — Apache License 2.0
-- PP Editorial New (if added to SideNote/Resources/Fonts/) — Pangram Pangram,
-  under their own free/trial license terms
