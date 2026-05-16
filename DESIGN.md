@@ -282,4 +282,6 @@ v1.1 推迟：图片、表格、脚注、删除线、嵌套引用、HTML 块。
 | 2026-05-16  | `swift-markdown` AST 渲染层 → 按行+行内**正则即时高亮**，移除该依赖      | live 编辑要对半成品 markdown 鲁棒且不卡；只改属性不改字符 → 选区/撤销天然不断。AST 重解析在每次按键下过重，且渲染层删除后该依赖成孤儿 |
 | 2026-05-16  | M3+ 微交互不达标 → 统一 PressableButtonStyle / hover 抬升 / 列表⇄详情 spring 转场 | 用户："动画效果都非常一般"。这是"设计即品牌"北极星本身。坚持 DESIGN.md：只投有意义状态变化，**不加** loading shimmer/spinner（本地 IO 瞬时） |
 | 2026-05-16  | 任务列表纳入 v1 子集（原 v1.1 推迟）；bullet/checkbox 用自定义 `NSLayoutManager` 原位画图形 | 用户要 Bear 式 live editing 的列表/待办观感。底层字符不动（标记设 `.clear` 占位，drawGlyphs 画 •/☐/☑）→ 光标/撤销不受影响；复选框可点击翻转 `[ ]`↔`[x]` |
-| 2026-05-16  | 卡片右滑 pin / 左滑删除；删除背景 = text-primary 近黑（**不是红**） | 用户要 Mail/Bear 式滑动操作。手写 DragGesture（不引库，保持零多余依赖 + 完全控制手感）。破坏性色若用红会破坏 sage 单色锁——改用既有 #1F1E18 近黑 + trash 图标传达 |
+| 2026-05-16  | 卡片右滑 pin / 左滑删除；删除背景 = text-primary 近黑（**不是红**） | 用户要 Mail/Bear 式滑动操作。手写（不引库，保持零多余依赖 + 完全控制手感）。破坏性色若用红会破坏 sage 单色锁——改用既有 #1F1E18 近黑 + trash 图标传达 |
+| 2026-05-16  | 滑动手势：触控板双指走 `scrollWheel`，鼠标拖走 `NSPanGestureRecognizer` | 用户指出没适配触控板。AppKit `NSPanGestureRecognizer` **不识别** scroll 事件（UIKit 的 `allowedScrollTypesMask` 在 macOS 不存在）；双指横扫必须自定义 `scrollWheel(with:)`（precise deltas + phase），竖向 super 放行给列表滚动 |
+| 2026-05-16  | NoteCard 版式按用户截图重做：大粗标题 → 多行灰预览 → 底部 pin+时间 | 用户给 Bear 截图要求照做。删掉浮动 CeramicPin + tag-chip-dot 行；pin 改为底部小 sage 图标（仅置顶显示）。**不做图片缩略图**——v1 无图片附件（DESIGN.md 图片仍 v1.1） |

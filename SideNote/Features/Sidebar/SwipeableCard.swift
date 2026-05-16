@@ -1,12 +1,12 @@
 import SwiftUI
+import AppKit
 
-/// 笔记卡片的滑动操作：右滑 → pin / unpin，左滑 → 删除。
+/// 笔记卡片滑动操作：右滑 → pin/unpin，左滑 → 删除。
 ///
-/// 手写（不引库）：DragGesture 控水平 offset，松手按阈值决定——
-/// 越过 commit 阈值直接执行；越过 reveal 阈值停在露出态（再点按钮确认）；
-/// 否则 spring 弹回。手感参数走 DESIGN.md motion token。
-/// 删除背景用 text-primary 近黑（不是红——sage 单色系统锁，无暖色），
-/// 靠图标 + 深色对比传达"破坏性"。
+/// **Mac 原生手势**：用 `NSPanGestureRecognizer` + `allowedScrollTypesMask = .continuous`，
+/// 鼠标按住拖 **和触控板双指横扫**都识别（SwiftUI 的 `DragGesture` 不认双指 scroll）。
+/// 竖直为主的手势放行给外层列表滚动。Mail 式整段滑过即执行，不做停靠态。
+/// 删除背景用近黑（sage 单色锁，无红）。
 struct SwipeableCard: View {
 
     let note: NoteFile
@@ -15,21 +15,22 @@ struct SwipeableCard: View {
     let onDelete: () -> Void
 
     @State private var offset: CGFloat = 0
-    @GestureState private var dragging = false
 
-    private let reveal: CGFloat = 76      // 露出操作按钮的停靠位
-    private let commit: CGFloat = 150     // 越过即直接执行
+    private let commit: CGFloat = 110     // 越过即执行
 
     var body: some View {
         ZStack {
             actionLayer
             NoteCard(note: note)
                 .offset(x: offset)
-                .gesture(drag)
-                .simultaneousGesture(
-                    TapGesture().onEnded {
-                        if offset == 0 { onTap() } else { snapBack() }
-                    }
+                .overlay(
+                    SwipeCatcher(
+                        offset: $offset,
+                        commit: commit,
+                        onTap: onTap,
+                        onPin: { fire(pin: true) },
+                        onDelete: { fire(pin: false) }
+                    )
                 )
         }
         .animation(.viewSwap, value: offset)
@@ -39,87 +40,178 @@ struct SwipeableCard: View {
 
     private var actionLayer: some View {
         HStack(spacing: 0) {
-            // 右滑露出（在左侧）：pin
-            action(
+            actionTile(
                 icon: note.pinned ? "pin.slash.fill" : "pin.fill",
                 label: note.pinned ? "Unpin" : "Pin",
                 tint: Color.sage,
-                visible: offset > 0
-            ) { commitPin() }
-            .frame(width: max(offset, 0))
-
+                width: max(offset, 0),
+                progress: min(1, max(offset, 0) / commit)
+            )
             Spacer(minLength: 0)
-
-            // 左滑露出（在右侧）：delete
-            action(
+            actionTile(
                 icon: "trash.fill",
                 label: "Delete",
                 tint: Color.textPrimary,
-                visible: offset < 0
-            ) { commitDelete() }
-            .frame(width: max(-offset, 0))
+                width: max(-offset, 0),
+                progress: min(1, max(-offset, 0) / commit)
+            )
         }
         .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
     }
 
-    private func action(icon: String, label: String, tint: Color,
-                        visible: Bool, perform: @escaping () -> Void) -> some View {
+    private func actionTile(icon: String, label: String, tint: Color,
+                            width: CGFloat, progress: CGFloat) -> some View {
         ZStack {
             tint
-            if visible {
-                Button(action: perform) {
-                    VStack(spacing: 3) {
-                        Image(systemName: icon).font(.system(size: 15, weight: .medium))
-                        Text(label).font(Typography.meta)
-                    }
-                    .foregroundStyle(Color.white)
-                    .scaleEffect(min(1, abs(offset) / reveal))
-                    .opacity(Double(min(1, abs(offset) / (reveal * 0.7))))
-                }
-                .buttonStyle(PressableButtonStyle())
+            VStack(spacing: 3) {
+                Image(systemName: icon).font(.system(size: 15, weight: .medium))
+                Text(label).font(Typography.meta)
             }
+            .foregroundStyle(Color.white)
+            .scaleEffect(0.85 + 0.15 * progress)
+            .opacity(Double(progress))
+        }
+        .frame(width: width)
+    }
+
+    private func fire(pin: Bool) {
+        if pin {
+            withAnimation(.viewSwap) { offset = 0 }
+            onPin()
+        } else {
+            withAnimation(.slideOut) { offset = -700 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { onDelete() }
         }
     }
+}
 
-    // MARK: - Gesture
+// MARK: - AppKit gesture catcher
 
-    private var drag: some Gesture {
-        DragGesture(minimumDistance: 12)
-            .updating($dragging) { _, s, _ in s = true }
-            .onChanged { v in
-                // 主要水平才接管，避免和竖直滚动打架
-                guard abs(v.translation.width) > abs(v.translation.height) else { return }
-                offset = rubberband(v.translation.width)
+/// 两条输入路径：
+/// - **鼠标按住拖** → `NSPanGestureRecognizer`（AppKit 原生支持鼠标 pan）
+/// - **触控板双指横扫** → 自定义 `scrollWheel(with:)`（AppKit 的 pan recognizer
+///   不识别 scroll 事件，UIKit 的 `allowedScrollTypesMask` 在 macOS 不存在，
+///   双指必须走 scrollWheel）
+/// 竖直为主的手势放行给外层列表滚动；轻点 → 打开。
+private struct SwipeCatcher: NSViewRepresentable {
+
+    @Binding var offset: CGFloat
+    let commit: CGFloat
+    let onTap: () -> Void
+    let onPin: () -> Void
+    let onDelete: () -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeNSView(context: Context) -> NSView {
+        let v = SwipeCatcherView()
+        v.coordinator = context.coordinator
+        v.wantsLayer = true
+
+        let pan = NSPanGestureRecognizer(target: context.coordinator,
+                                         action: #selector(Coordinator.handlePan(_:)))
+        v.addGestureRecognizer(pan)
+
+        let click = NSClickGestureRecognizer(target: context.coordinator,
+                                             action: #selector(Coordinator.handleClick))
+        click.delaysPrimaryMouseButtonEvents = false
+        v.addGestureRecognizer(click)
+
+        return v
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.parent = self
+    }
+
+    final class Coordinator: NSObject {
+        var parent: SwipeCatcher
+        private var axis: Axis? = nil
+        private var scrollAccumX: CGFloat = 0
+        enum Axis { case horizontal, vertical }
+
+        init(_ parent: SwipeCatcher) { self.parent = parent }
+
+        @objc func handleClick() {
+            if parent.offset == 0 { parent.onTap() }
+            else { withAnimation(.viewSwap) { parent.offset = 0 } }
+        }
+
+        // --- 鼠标拖拽 ---
+        @objc func handlePan(_ gr: NSPanGestureRecognizer) {
+            guard let view = gr.view else { return }
+            let t = gr.translation(in: view)
+            switch gr.state {
+            case .began:
+                axis = nil
+            case .changed:
+                if axis == nil, abs(t.x) > 6 || abs(t.y) > 6 {
+                    axis = abs(t.x) > abs(t.y) ? .horizontal : .vertical
+                }
+                if axis == .horizontal { parent.offset = rubberband(t.x) }
+            case .ended, .cancelled, .failed:
+                defer { axis = nil }
+                guard axis == .horizontal else { return }
+                resolve(t.x)
+            default:
+                break
             }
-            .onEnded { v in
-                let x = v.translation.width
-                if x > commit { commitPin() }
-                else if x < -commit { commitDelete() }
-                else if x > reveal * 0.6 { settle(reveal) }
-                else if x < -reveal * 0.6 { settle(-reveal) }
-                else { snapBack() }
+        }
+
+        // --- 触控板双指（由 SwipeCatcherView.scrollWheel 调用）---
+        /// 返回 true = 本事件被横向滑动消费；false = 放行给列表滚动
+        func handleScroll(phase: NSEvent.Phase, dx: CGFloat, dy: CGFloat) -> Bool {
+            if phase.contains(.began) {
+                axis = nil
+                scrollAccumX = 0
             }
-    }
+            if axis == nil {
+                scrollAccumX += dx
+                if abs(scrollAccumX) > 5 || abs(dy) > 5 {
+                    axis = abs(scrollAccumX) > abs(dy) ? .horizontal : .vertical
+                }
+            }
+            guard axis == .horizontal else { return false }
+            if phase.contains(.ended) || phase.contains(.cancelled) {
+                let final = parent.offset
+                axis = nil
+                resolve(final)
+            } else {
+                parent.offset = rubberband(parent.offset + dx)
+            }
+            return true
+        }
 
-    /// 越界后增加阻尼，像 iOS 列表那样"拉得动但越来越沉"。
-    private func rubberband(_ x: CGFloat) -> CGFloat {
-        if abs(x) <= commit { return x }
-        let over = abs(x) - commit
-        return (x < 0 ? -1 : 1) * (commit + over * 0.35)
-    }
+        private func resolve(_ x: CGFloat) {
+            if x > parent.commit { parent.onPin() }
+            else if x < -parent.commit { parent.onDelete() }
+            else { withAnimation(.viewSwap) { parent.offset = 0 } }
+        }
 
-    private func settle(_ to: CGFloat) {
-        withAnimation(.viewSwap) { offset = to }
+        private func rubberband(_ x: CGFloat) -> CGFloat {
+            let c = parent.commit
+            guard abs(x) > c else { return x }
+            let over = abs(x) - c
+            return (x < 0 ? -1 : 1) * (c + over * 0.35)
+        }
     }
-    private func snapBack() {
-        withAnimation(.viewSwap) { offset = 0 }
-    }
-    private func commitPin() {
-        withAnimation(.viewSwap) { offset = 0 }
-        onPin()
-    }
-    private func commitDelete() {
-        withAnimation(.slideOut) { offset = -600 }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { onDelete() }
+}
+
+/// scrollWheel 入口。横向为主自己消费，竖向 super 放行给外层 NSScrollView。
+private final class SwipeCatcherView: NSView {
+    weak var coordinator: SwipeCatcher.Coordinator?
+
+    override func scrollWheel(with event: NSEvent) {
+        // 非精确（普通鼠标滚轮）= 竖直滚动，直接放行
+        guard event.hasPreciseScrollingDeltas, let coordinator else {
+            super.scrollWheel(with: event)
+            return
+        }
+        let consumed = coordinator.handleScroll(
+            phase: event.phase.isEmpty ? .changed : event.phase,
+            dx: event.scrollingDeltaX,
+            dy: event.scrollingDeltaY
+        )
+        if !consumed { super.scrollWheel(with: event) }
     }
 }

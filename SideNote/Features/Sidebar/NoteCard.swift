@@ -1,12 +1,10 @@
 import SwiftUI
 
-/// 单条笔记卡片视图。严格照 DESIGN.md 规格。
+/// 单条笔记卡片。Bear 风格版式（用户实测后按截图重做）：
+/// 加粗大标题 → 多行灰色预览 → 底部 pin 图标(仅置顶时) + 时间戳。
+/// 颜色全走 sage 系统；玻璃/选中/hover 仍照 DESIGN.md。
 ///
-/// 状态：
-/// - normal: cardFill 半透明白底 + hairline
-/// - hover: cardFillHover + border 略深（120ms ease-out）
-/// - selected: cardFillSelected + 左侧 2pt sage 立柱
-/// - pinned: 顶部左侧伸出一个 sage ceramic 图钉
+/// 不做图片缩略图：v1 是纯 Markdown 文本、无图片附件（DESIGN.md 图片推 v1.1）。
 struct NoteCard: View {
 
     let note: NoteFile
@@ -15,61 +13,55 @@ struct NoteCard: View {
     @State private var hovering = false
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(note.displayTitle)
-                    .font(Typography.h3)
-                    .foregroundStyle(.textPrimary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                    .tracking(-0.1)
+        VStack(alignment: .leading, spacing: 7) {
+            Text(note.displayTitle)
+                .font(Typography.bold(16.5))
+                .foregroundStyle(.textPrimary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .tracking(-0.1)
 
-                if !note.preview.isEmpty {
-                    Text(note.preview)
-                        .font(Typography.listItem)
-                        .foregroundStyle(.textMuted)
-                        .lineLimit(2)
-                        .lineSpacing(2)
-                }
-
-                HStack(spacing: Spacing.sm) {
-                    if let tag = note.tags.first {
-                        tagChip(tag)
-                        Circle()
-                            .fill(.textFaint)
-                            .frame(width: 3, height: 3)
-                    }
-                    Text(note.relativeTimestamp)
-                        .font(Typography.meta)
-                        .tracking(0.2)
-                        .foregroundStyle(.textFaint)
-                }
-                .padding(.top, 4)
+            if !note.preview.isEmpty {
+                Text(note.preview)
+                    .font(Typography.listItem)
+                    .foregroundStyle(.textMuted)
+                    .lineLimit(3)
+                    .lineSpacing(3)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(cardBackground)
-            .overlay(cardBorder)
-            .overlay(alignment: .leading) {
-                if selected {
-                    Rectangle()
-                        .fill(.sage)
-                        .frame(width: 2)
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
-            // 选中态阴影微强（DESIGN.md：选中卡片「阴影微强」）
-            .shadow(color: .black.opacity(selected ? 0.07 : 0.04),
-                    radius: selected ? 2 : 1, y: 1)
-            .onHover { hovering = $0 }
-            .animation(.cardState, value: hovering)   // 卡片 hover 120ms ease-out
-            .animation(.cardState, value: selected)   // 选中切换 120ms ease-out
 
+            footer
+                .padding(.top, 3)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(cardBackground)
+        .overlay(cardBorder)
+        .overlay(alignment: .leading) {
+            if selected {
+                Rectangle().fill(.sage).frame(width: 2)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+        .shadow(color: .black.opacity(selected ? 0.07 : 0.04),
+                radius: selected ? 2 : 1, y: 1)
+        .onHover { hovering = $0 }
+        .animation(.cardState, value: hovering)
+        .animation(.cardState, value: selected)
+    }
+
+    private var footer: some View {
+        HStack(spacing: 6) {
             if note.pinned {
-                CeramicPin()
-                    .offset(x: 14, y: -4)
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.sage)
+                    .rotationEffect(.degrees(-40))
             }
+            Text(note.relativeTimestamp)
+                .font(Typography.meta)
+                .tracking(0.2)
+                .foregroundStyle(.textFaint)
         }
     }
 
@@ -81,54 +73,7 @@ struct NoteCard: View {
 
     private var cardBorder: some View {
         RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
-            .stroke(hovering ? .hairline.opacity(1.4) : .hairline, lineWidth: BorderWidth.hairline)
-    }
-
-    private func tagChip(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 10.5, weight: .regular))
-            .foregroundStyle(.textMuted)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 2)
-            .background(Color.black.opacity(0.035))
-            .clipShape(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous))
-    }
-}
-
-// MARK: - Ceramic pin
-
-/// Sage 渐变陶瓷图钉。DESIGN.md spec:
-/// - 12×18pt 头 + 2×16pt 针
-/// - 整体 rotate 8°
-/// - 渐变: sageDeep → sage → sageSoft → sage （模拟陶瓷高光）
-struct CeramicPin: View {
-    var body: some View {
-        ZStack(alignment: .top) {
-            Rectangle()
-                .fill(LinearGradient(
-                    colors: [.sageDeep, .sage, .clear],
-                    startPoint: .top,
-                    endPoint: .bottom
-                ))
-                .frame(width: 2, height: 16)
-                .offset(y: 10)
-
-            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                .fill(LinearGradient(
-                    colors: [.sageDeep, .sage, .sageSoft, .sage],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
-                .frame(width: 12, height: 18)
-                .overlay(
-                    Capsule()
-                        .fill(Color.white.opacity(0.30))
-                        .frame(width: 5, height: 2)
-                        .offset(y: -6)
-                )
-                .shadow(color: .black.opacity(0.20), radius: 1.5, y: 2)
-        }
-        .rotationEffect(.degrees(8))
-        .frame(width: 14, height: 26)
+            .stroke(hovering ? .hairline.opacity(1.4) : .hairline,
+                    lineWidth: BorderWidth.hairline)
     }
 }
