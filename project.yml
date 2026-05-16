@@ -27,7 +27,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.oliverxuzy.side-note
         PRODUCT_NAME: SideNote
         MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "1"
+        CURRENT_PROJECT_VERSION: "27"
         SWIFT_VERSION: "5.10"
         SWIFT_STRICT_CONCURRENCY: minimal
         ENABLE_HARDENED_RUNTIME: YES
@@ -49,6 +49,7 @@ targets:
       - path: SideNoteTests
     dependencies:
       - target: SideNote
+      - package: HotKey
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.oliverxuzy.side-note.tests

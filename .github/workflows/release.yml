@@ -1,0 +1,67 @@
+name: Release
+
+# Push a tag like v0.2.0 (scripts/release.sh creates it) → this builds the
+# .dmg and attaches it to a DRAFT GitHub release. The owner reviews and
+# publishes manually — CI never publishes unilaterally.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  dmg:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history → correct CURRENT_PROJECT_VERSION
+
+      - name: Install tooling
+        run: brew install xcodegen create-dmg
+
+      - name: Sync version from VERSION file
+        run: sh scripts/sync-version.sh
+
+      - name: Verify tag matches VERSION
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          file="$(tr -d ' \t\n\r' < VERSION)"
+          if [ "$tag" != "$file" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match VERSION ($file)"
+            exit 1
+          fi
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Archive (Release, ad-hoc)
+        run: |
+          xcodebuild -project SideNote.xcodeproj -scheme SideNote \
+            -configuration Release \
+            -archivePath "$RUNNER_TEMP/SideNote.xcarchive" archive
+
+      - name: Build .dmg
+        run: |
+          app="$RUNNER_TEMP/SideNote.xcarchive/Products/Applications/SideNote.app"
+          test -d "$app" || { echo "::error::no SideNote.app in archive"; exit 1; }
+          create-dmg \
+            --volname "side-note" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "SideNote.app" 175 200 \
+            --hide-extension "SideNote.app" \
+            --app-drop-link 425 200 \
+            "side-note-${GITHUB_REF_NAME#v}.dmg" "$app"
+
+      - name: Attach .dmg to a DRAFT release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true                       # owner publishes manually
+          name: "side-note ${{ github.ref_name }}"
+          files: "side-note-*.dmg"
+          fail_on_unmatched_files: true
