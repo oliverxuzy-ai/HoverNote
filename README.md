@@ -9,7 +9,7 @@ The most quietly beautiful notes app on macOS — or it's not worth shipping.
 ![swift](https://img.shields.io/badge/Swift-5.10-6E8060?style=flat-square)
 ![ui](https://img.shields.io/badge/SwiftUI-native-6E8060?style=flat-square)
 ![status](https://img.shields.io/badge/status-v0.1.0%20(draft)-B8C2A8?style=flat-square)
-![license](https://img.shields.io/badge/license-MIT%20(pending)-A8A59C?style=flat-square)
+![license](https://img.shields.io/badge/license-MIT-6E8060?style=flat-square)
 
 </div>
 
@@ -202,8 +202,11 @@ asks you to pre-classify. The app rewards writing, not filing.
 
 ## License
 
-TBD — personal project, likely MIT when the code stabilizes. Bundled fonts keep
-their own licenses (General Sans: Fontshare free; JetBrains Mono: Apache-2.0).
+[MIT](LICENSE) © 2026 oliverxuzy. Do whatever you want with the code.
+
+Bundled third-party fonts keep their own licenses and are **not** covered by
+MIT: General Sans (Fontshare free license), JetBrains Mono (Apache-2.0), and
+PP Editorial New (Pangram Pangram terms, if added). See [`LICENSE`](LICENSE).
 
 ---
 
