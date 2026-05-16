@@ -8,7 +8,7 @@ The most quietly beautiful notes app on macOS — or it's not worth shipping.
 ![platform](https://img.shields.io/badge/platform-macOS%2014%2B-1F1E18?style=flat-square)
 ![swift](https://img.shields.io/badge/Swift-5.10-6E8060?style=flat-square)
 ![ui](https://img.shields.io/badge/SwiftUI-native-6E8060?style=flat-square)
-![status](https://img.shields.io/badge/status-M3%20visual%20polish-B8C2A8?style=flat-square)
+![status](https://img.shields.io/badge/status-v0.1.0%20(draft)-B8C2A8?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT%20(pending)-A8A59C?style=flat-square)
 
 </div>
@@ -21,8 +21,9 @@ The most quietly beautiful notes app on macOS — or it's not worth shipping.
 ## What it is
 
 A native macOS app (macOS 14+, SwiftUI) that lives in your menu bar and slides
-out from the right edge on a global hotkey or an edge-hover. You write Markdown.
-You pin notes. You close it — and it disappears off-screen the same way it came.
+out from the right edge on a global hotkey or an edge-hover. You write Markdown
+that styles itself as you type (Bear-style, no edit/preview switch). You pin or
+delete notes with a swipe. You close it — and it slides off-screen the same way.
 
 It's not trying to be the most powerful note tool. It's trying to be the one
 your shoulders relax around.
@@ -40,18 +41,21 @@ Open them in Obsidian, Vim, or any editor. No database, no sync, no lock-in.
 | **M1** Slide-in spike | NSPanel + single-spring slide, glass, shadow | ✅ done |
 | **M2** Core read/write | file storage, Markdown render, editor, search, CRUD | ✅ done |
 | **M3** Visual polish | fonts, typography, micro-motion, edge-hover | ✅ code done · ⏳ fonts/demo |
-| **M4** Ship | self-signed `.dmg` on GitHub Releases | 🔜 packaging |
+| **M4** Ship | self-signed `.dmg` on GitHub Releases | ✅ draft cut · ⏳ publish |
+| **post** Feedback iter | live editing, bullets/to-do, swipe-to-pin/delete | ✅ done |
 
-**M3 has two owner-only items left**: dropping the PP Editorial New font into
-`SideNote/Resources/Fonts/` (display headlines fall back to a system serif
-until then — see [`PLAN.md`](PLAN.md)), and recording the 30-second demo.
+**Two owner-only items remain before a public v0.1.0**: dropping the PP Editorial
+New font into `SideNote/Resources/Fonts/` (display headlines fall back to a
+system serif until then) and recording the 30-second demo. The release is cut as
+a **GitHub draft** with the `.dmg` attached, pending those — see [`PLAN.md`](PLAN.md).
 
 ---
 
 ## Download & install
 
-Grab the latest `side-note-x.y.z.dmg` from
+Once published, grab the latest `side-note-x.y.z.dmg` from
 **[Releases](https://github.com/oliverxuzy-ai/side-note/releases)**.
+*(v0.1.0 is currently a draft pending the demo + display font.)*
 
 1. Double-click the `.dmg` to mount it
 2. Drag **SideNote.app** onto the **Applications** shortcut
@@ -75,12 +79,15 @@ icon or press `⌃⇧Space` to slide it in.
   hover (opt-in, off by default; needs Accessibility permission)
 - **Real slide-in** — a single SwiftUI spring drives the whole surface; live
   `.regularMaterial` glass over your wallpaper
-- **Markdown rendering** — `swift-markdown` AST → hand-written SwiftUI: H1–H3,
-  paragraphs, ordered/unordered lists, inline code, code blocks, blockquotes,
-  bold/italic, links. Unsupported syntax shown as-is, never an error.
+- **Live Markdown editing** — Bear-style, no edit/preview toggle. Markers stay
+  visible but recede; H1–H3, **bold**, *italic*, `inline code`, code blocks,
+  blockquotes, links style themselves as you type. Real `•` bullets and
+  clickable `- [ ]` / `- [x]` to-do checkboxes. Cursor/undo never disrupted.
+- **Swipe actions** — swipe a card right to pin/unpin, left to delete. Works
+  with **trackpad two-finger** and mouse drag.
 - **Plain-file storage** — atomic writes, FSEvents two-way sync, external-edit
   conflict banner, delete-to-Trash
-- **Pinned notes** — sage ceramic pin; pinned float to the top, persisted
+- **Pinned notes** — small sage pin on the card; pinned float to the top
 - **Title + tag search**
 - **Sage monochrome** — one hue, no warm color anywhere ([`DESIGN.md`](DESIGN.md))
 
@@ -145,8 +152,11 @@ no Apple Developer account for local dev (ad-hoc *Sign to Run Locally*).
 ## Stack
 
 - **Swift 5.10 / SwiftUI**, macOS 14.0 minimum
-- **Markdown AST** — [`apple/swift-markdown`](https://github.com/apple/swift-markdown)
-- **Hotkey** — [`soffes/HotKey`](https://github.com/soffes/HotKey)
+- **Live Markdown** — regex highlighter + custom `NSLayoutManager` drawing
+  bullets/checkboxes (no Markdown library; `swift-markdown` was dropped)
+- **Swipe** — hand-rolled: `scrollWheel` for trackpad two-finger,
+  `NSPanGestureRecognizer` for mouse drag (no swipe library)
+- **Hotkey** — [`soffes/HotKey`](https://github.com/soffes/HotKey) *(only dependency)*
 - **Storage** — filesystem, `~/Documents/SideNote/<ULID>.md`
 - **Edge-hover** — `CGEventTap` (why there is no Mac App Store build for v1)
 - No Rust, no Electron, no Tauri. Native materials are the whole point.
@@ -155,12 +165,13 @@ no Apple Developer account for local dev (ad-hoc *Sign to Run Locally*).
 
 ## Scope
 
-**In v1** — slide-in/out (3 triggers), Markdown subset, pin, tags, title+tag
-search, note CRUD, light theme only, FSEvents two-way sync, self-signed `.dmg`.
+**In v1** — slide-in/out (3 triggers), live Markdown editing (incl. to-do),
+swipe-to-pin/delete, pin, tags, title+tag search, note CRUD, light theme only,
+FSEvents two-way sync, self-signed `.dmg`.
 
 **Out for now** — dark theme (needs its own mood board), cloud sync, iOS, AI
 features, Mac App Store (sandbox blocks `CGEventTap`), notarization, Markdown
-tables/images/task-lists (v1.1), pin drag-physics (v1.1).
+tables/images (v1.1), pin drag-physics (v1.1).
 
 **Out forever (probably)** — tags-as-folders, nested categories, anything that
 asks you to pre-classify. The app rewards writing, not filing.
@@ -171,7 +182,7 @@ asks you to pre-classify. The app rewards writing, not filing.
 
 - **v1** *(~3–4 weeks solo)* — ship the light theme, beautiful enough for a
   30-second demo without cringing
-- **v1.1** — Markdown subset expansion, pin physics, animation-state polish
+- **v1.1** — images & tables in Markdown, pin drag-physics, more polish
 - **v2** — dark theme (own mood board → own `/design-consultation`),
   notarization, Sparkle auto-update, possibly an iOS companion
 
@@ -184,6 +195,7 @@ asks you to pre-classify. The app rewards writing, not filing.
 - **Linear** — monochrome design systems aren't boring
 - **PP Editorial New** (Pangram Pangram) · **General Sans** (Indian Type
   Foundry) · **JetBrains Mono** — the typefaces
+- **Bear** — the live-editing model: style as you type, no mode switch
 - **SideNotes** — the category-defining workhorse we're trying to out-design
 
 ---
