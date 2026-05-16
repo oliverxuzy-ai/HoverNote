@@ -15,12 +15,30 @@ struct PreferencesView: View {
     let requestAX: () -> Void
 
     @State private var axTrusted = false
+    @State private var hotkeyDisplay = RevealHotkey.displayString
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text("Preferences")
                 .font(Typography.h2)
                 .foregroundStyle(.textPrimary)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Reveal shortcut")
+                    .font(Typography.body)
+                    .foregroundStyle(.textPrimary)
+                HotkeyRecorderField(
+                    onCapture: { combo in
+                        RevealHotkey.save(combo)
+                        hotkeyDisplay = combo.description
+                    },
+                    display: hotkeyDisplay
+                )
+                .frame(height: 30)
+                Text("Click, then press a new combo (needs ⌘/⌃/⌥). Esc cancels · ⌫ resets.")
+                    .font(Typography.meta)
+                    .foregroundStyle(.textMuted)
+            }
 
             VStack(alignment: .leading, spacing: 10) {
                 Toggle(isOn: $edgeHoverEnabled) {
@@ -48,12 +66,12 @@ struct PreferencesView: View {
 
             Spacer()
 
-            Text("⌃⇧Space or the menu-bar icon always work, with or without this.")
+            Text("\(hotkeyDisplay) or the menu-bar icon always work, with or without this.")
                 .font(Typography.meta)
                 .foregroundStyle(.textFaint)
         }
         .padding(24)
-        .frame(width: 380, height: 260)
+        .frame(width: 380, height: 380)
         .background(Color.canvas)
         .onAppear { axTrusted = isAXTrusted() }
     }

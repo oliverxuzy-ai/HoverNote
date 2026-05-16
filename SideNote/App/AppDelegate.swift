@@ -86,7 +86,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let win = NSWindow(contentViewController: hosting)
         win.title = "side-note Preferences"
         win.styleMask = [.titled, .closable]
-        win.setContentSize(NSSize(width: 380, height: 260))
+        win.setContentSize(NSSize(width: 380, height: 380))
         win.center()
         win.isReleasedWhenClosed = false
         preferencesWindow = win
@@ -116,7 +116,7 @@ private struct AboutView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
 
-            Text("⌃⇧Space to toggle")
+            Text("Global shortcut · menu bar · screen edge")
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundStyle(.textFaint)
                 .padding(.top, 6)
