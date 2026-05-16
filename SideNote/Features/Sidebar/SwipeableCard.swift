@@ -15,17 +15,19 @@ struct SwipeableCard: View {
     let onDelete: () -> Void
 
     @State private var offset: CGFloat = 0
+    @State private var hovering = false
 
     private let commit: CGFloat = 110     // 越过即执行
 
     var body: some View {
         ZStack {
             actionLayer
-            NoteCard(note: note)
+            NoteCard(note: note, hovering: hovering)
                 .offset(x: offset)
                 .overlay(
                     SwipeCatcher(
                         offset: $offset,
+                        hovering: $hovering,
                         commit: commit,
                         onTap: onTap,
                         onPin: { fire(pin: true) },
@@ -34,6 +36,7 @@ struct SwipeableCard: View {
                 )
         }
         .animation(.viewSwap, value: offset)
+        .animation(.cardState, value: hovering)
     }
 
     // MARK: - Action backgrounds
@@ -101,6 +104,7 @@ struct SwipeableCard: View {
 private struct SwipeCatcher: NSViewRepresentable {
 
     @Binding var offset: CGFloat
+    @Binding var hovering: Bool
     let commit: CGFloat
     let onTap: () -> Void
     let onPin: () -> Void
@@ -140,6 +144,10 @@ private struct SwipeCatcher: NSViewRepresentable {
         @objc func handleClick() {
             if parent.offset == 0 { parent.onTap() }
             else { withAnimation(.viewSwap) { parent.offset = 0 } }
+        }
+
+        func setHover(_ v: Bool) {
+            if parent.hovering != v { parent.hovering = v }
         }
 
         // --- 鼠标拖拽 ---
@@ -205,6 +213,18 @@ private struct SwipeCatcher: NSViewRepresentable {
 /// scrollWheel 入口。横向为主自己消费，竖向 super 放行给外层 NSScrollView。
 private final class SwipeCatcherView: NSView {
     weak var coordinator: SwipeCatcher.Coordinator?
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self))
+    }
+
+    override func mouseEntered(with event: NSEvent) { coordinator?.setHover(true) }
+    override func mouseExited(with event: NSEvent)  { coordinator?.setHover(false) }
 
     override func scrollWheel(with event: NSEvent) {
         // 非精确（普通鼠标滚轮）= 竖直滚动，直接放行

@@ -55,6 +55,7 @@ struct SidebarPanelView: View {
 
     @State private var query = ""
     @State private var selectedID: ULID?
+    @State private var searchHovered = false
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -145,17 +146,22 @@ struct SidebarPanelView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color.black.opacity(searchFocused ? 0.02 : 0.035))
+        .background(Color.black.opacity(active ? 0.02 : 0.035))
         .overlay(
             RoundedRectangle(cornerRadius: Radius.md - 2, style: .continuous)
-                .stroke(searchFocused ? Color.sage.opacity(0.55) : Color.hairline,
-                        lineWidth: searchFocused ? 1.5 : BorderWidth.hairline)
+                .stroke(active ? Color.sage.opacity(0.55) : Color.hairline,
+                        lineWidth: active ? 1.5 : BorderWidth.hairline)
         )
         .clipShape(RoundedRectangle(cornerRadius: Radius.md - 2, style: .continuous))
-        .shadow(color: Color.sage.opacity(searchFocused ? 0.16 : 0),
-                radius: searchFocused ? 5 : 0)
-        .animation(.cardState, value: searchFocused)
+        .shadow(color: Color.sage.opacity(active ? 0.16 : 0),
+                radius: active ? 5 : 0)
+        .trackHover($searchHovered)          // .onHover 被内嵌 NSTextField 吃掉，用可靠 tracker
+        .animation(.cardState, value: active)
     }
+
+    /// @FocusState 在 nonactivating panel 里不可靠（caret 在但 binding 不翻）；
+    /// hover（NSTrackingArea）可靠。聚焦或 hover 任一即点亮 → 永远有可见反馈。
+    private var active: Bool { searchFocused || searchHovered }
 
     private var footer: some View {
         HStack {

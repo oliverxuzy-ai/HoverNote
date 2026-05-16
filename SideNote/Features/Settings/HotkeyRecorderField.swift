@@ -70,6 +70,7 @@ struct HotkeyRecorderField: NSViewRepresentable {
             // ⌫ / Delete 恢复默认
             if event.keyCode == 51 || event.keyCode == 117 {
                 RevealHotkey.reset()
+                display = RevealHotkey.default.description   // 直接刷新，别等 SwiftUI 回灌
                 onCapture?(RevealHotkey.default)
                 isRecording = false
                 window?.makeFirstResponder(nil)

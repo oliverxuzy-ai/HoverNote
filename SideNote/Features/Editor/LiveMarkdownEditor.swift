@@ -151,29 +151,30 @@ final class MarkdownTextView: NSTextView {
         }
         let inset = textContainerInset
         let pt = NSPoint(x: p.x - inset.width, y: p.y - inset.height)
+        let ns = string as NSString
+        guard ns.length > 0 else { super.mouseDown(with: event); return }
+
+        // 命中点所在行（glyphIndex 取最近 glyph，足够定位到行；精确命中靠下面的
+        // box-rect 包含判定，不再依赖逐字符 .snCheckbox 属性——那个太脆）。
         let gi = lm.glyphIndex(for: pt, in: tc)
-        let ci = lm.characterIndexForGlyph(at: gi)
-        let nsString = string as NSString
-        guard ci < nsString.length else { super.mouseDown(with: event); return }
-
-        // 该字符是否落在一个 checkbox marker 上？
-        var isBox = false
-        textStorage?.enumerateAttribute(.snCheckbox,
-                                        in: NSRange(location: ci, length: 1)) { v, _, stop in
-            if v != nil { isBox = true; stop.pointee = true }
-        }
-        guard isBox else { super.mouseDown(with: event); return }
-
-        // 找到本行的 [ ] / [x]，翻转内部字符
-        let lineRange = nsString.lineRange(for: NSRange(location: ci, length: 0))
-        let line = nsString.substring(with: lineRange)
+        let ci = min(lm.characterIndexForGlyph(at: gi), ns.length - 1)
+        let lineRange = ns.lineRange(for: NSRange(location: ci, length: 0))
+        let line = ns.substring(with: lineRange)
         guard let m = Self.taskBox.firstMatch(
             in: line, range: NSRange(location: 0, length: (line as NSString).length))
         else { super.mouseDown(with: event); return }
 
-        let innerInLine = m.range(at: 1)                       // 方括号里那一个字符
+        // 复选框的可点区 = 整段前缀 "- [ ] " 的 glyph 矩形，慷慨外扩做 tap target。
+        // 点在正文上不翻转（只认 marker 区）。
+        let prefixRange = NSRange(location: lineRange.location, length: m.range(at: 0).length)
+        let gr = lm.glyphRange(forCharacterRange: prefixRange, actualCharacterRange: nil)
+        let boxRect = lm.boundingRect(forGlyphRange: gr, in: tc).insetBy(dx: -8, dy: -5)
+        guard boxRect.contains(pt) else { super.mouseDown(with: event); return }
+
+        // 翻转 [ ] / [x] 里那一个字符
+        let innerInLine = m.range(at: 1)
         let loc = lineRange.location + innerInLine.location
-        let cur = nsString.substring(with: NSRange(location: loc, length: 1))
+        let cur = ns.substring(with: NSRange(location: loc, length: 1))
         let next = (cur == " ") ? "x" : " "
         let target = NSRange(location: loc, length: 1)
         if shouldChangeText(in: target, replacementString: next) {

@@ -22,7 +22,6 @@ struct NoteListView: View {
                             onPin: { onPin(note) },
                             onDelete: { onDelete(note) }
                         )
-                        .hoverLift()
                     }
                 }
             }

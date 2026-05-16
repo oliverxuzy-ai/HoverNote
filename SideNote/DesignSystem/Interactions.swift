@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// 复用的交互手感。DESIGN.md：motion 预算只投在有意义的状态变化上，
 /// 不做装饰性动效；按下/hover/聚焦要"跟手"，spring 收尾不生硬。
@@ -85,5 +86,44 @@ struct HoverLift: ViewModifier {
 extension View {
     func hoverLift(_ lift: CGFloat = 1.012) -> some View {
         modifier(HoverLift(lift: lift))
+    }
+}
+
+/// 可靠 hover 上报：SwiftUI `.onHover` 会被嵌入的 AppKit 子视图（NSTextField、
+/// 自定义 NSView）吃掉收不到；这个透明 NSView 用 NSTrackingArea 直接探测，
+/// `hitTest` 返回 nil 让点击穿透不挡交互。
+struct HoverReporter: NSViewRepresentable {
+    @Binding var hovering: Bool
+
+    func makeNSView(context: Context) -> NSView {
+        let v = TrackingView()
+        v.onChange = { hovering = $0 }
+        return v
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        (nsView as? TrackingView)?.onChange = { hovering = $0 }
+    }
+
+    final class TrackingView: NSView {
+        var onChange: ((Bool) -> Void)?
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }   // 点击穿透
+        override func updateTrackingAreas() {
+            super.updateTrackingAreas()
+            trackingAreas.forEach(removeTrackingArea)
+            addTrackingArea(NSTrackingArea(
+                rect: bounds,
+                options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+                owner: self))
+        }
+        override func mouseEntered(with event: NSEvent) { onChange?(true) }
+        override func mouseExited(with event: NSEvent)  { onChange?(false) }
+    }
+}
+
+extension View {
+    /// 用可靠的 NSTrackingArea 把 hover 状态写进绑定（替代会被 AppKit 子视图拦截的 `.onHover`）。
+    func trackHover(_ hovering: Binding<Bool>) -> some View {
+        overlay(HoverReporter(hovering: hovering))
     }
 }

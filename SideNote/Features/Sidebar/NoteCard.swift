@@ -11,8 +11,9 @@ struct NoteCard: View {
 
     let note: NoteFile
     var selected: Bool = false
-
-    @State private var hovering = false
+    /// 父级（SwipeableCard）从 NSView 层 NSTrackingArea 驱动——SwiftUI 的
+    /// `.onHover` 会被覆盖在卡片上的 SwipeCatcher NSView 吃掉，收不到。
+    var hovering: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -64,23 +65,24 @@ struct NoteCard: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
-        // 选中态阴影微强（DESIGN.md：选中卡片「阴影微强」）
-        .shadow(color: .black.opacity(selected ? 0.07 : 0.04),
-                radius: selected ? 2 : 1, y: 1)
-        .onHover { hovering = $0 }
+        // hover/选中阴影抬升（DESIGN.md：选中「阴影微强」；hover 给清晰可感的浮起）
+        .shadow(color: .black.opacity(hovering ? 0.10 : (selected ? 0.07 : 0.04)),
+                radius: hovering ? 5 : (selected ? 2 : 1),
+                y: hovering ? 2 : 1)
         .animation(.cardState, value: hovering)   // 卡片 hover 120ms ease-out
         .animation(.cardState, value: selected)   // 选中切换 120ms ease-out
     }
 
     private var cardBackground: Color {
-        if selected { return .cardFillSelected }
-        if hovering  { return .cardFillHover    }
-        return .cardFill
+        if selected { return .cardFillSelected }          // 0.88
+        if hovering  { return Color.white.opacity(0.82) } // 明显亮于 0.55 常态，可感
+        return .cardFill                                  // 0.55
     }
 
     private var cardBorder: some View {
         RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
-            .stroke(hovering ? .hairline.opacity(1.4) : .hairline, lineWidth: BorderWidth.hairline)
+            .stroke(hovering ? Color.textPrimary.opacity(0.13) : Color.hairline,
+                    lineWidth: BorderWidth.hairline)
     }
 
     private func tagChip(_ text: String) -> some View {

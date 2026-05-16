@@ -104,7 +104,7 @@ private struct AboutView: View {
                 .font(.system(size: 28, weight: .regular, design: .serif))
                 .foregroundStyle(.textPrimary)
 
-            Text("v0.1.0 · M1 slide-in spike")
+            Text("v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")")
                 .font(.system(size: 13))
                 .tracking(0.4)
                 .foregroundStyle(.sage)
