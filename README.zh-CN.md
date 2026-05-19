@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/assets/icon.png" alt="HoverNote" width="112" height="112" />
+
 # HoverNote
 
 **一个从屏幕边缘滑入的 Mac 侧边栏 Markdown 笔记本。**
@@ -12,6 +14,13 @@ macOS 上最安静好看的笔记 App——做不到就不值得发布。
 ![SwiftUI](https://img.shields.io/badge/SwiftUI-native-6E8060?style=flat-square)
 [![release](https://img.shields.io/github/v/release/oliverxuzy-ai/HoverNote?sort=semver&style=flat-square&color=6E8060&label=release)](https://github.com/oliverxuzy-ai/HoverNote/releases/latest)
 ![license](https://img.shields.io/badge/license-MIT-6E8060?style=flat-square)
+
+<!--
+  英文 README 同步：在 docs/assets/hero.png 放好截图（建议 2400×1500 @2x，
+  面板滑出叠在桌面壁纸上）后取消下面这行注释。
+
+  <img src="docs/assets/hero.png" alt="HoverNote 面板从屏幕右侧滑出" width="820" />
+-->
 
 </div>
 

@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/assets/icon.png" alt="HoverNote" width="112" height="112" />
+
 # HoverNote
 
 **A Mac sidebar Markdown notebook that slides in from the edge of your screen.**
@@ -12,6 +14,14 @@ The most quietly beautiful notes app on macOS — or it's not worth shipping.
 ![SwiftUI](https://img.shields.io/badge/SwiftUI-native-6E8060?style=flat-square)
 [![release](https://img.shields.io/github/v/release/oliverxuzy-ai/HoverNote?sort=semver&style=flat-square&color=6E8060&label=release)](https://github.com/oliverxuzy-ai/HoverNote/releases/latest)
 ![license](https://img.shields.io/badge/license-MIT-6E8060?style=flat-square)
+
+<!--
+  Hero screenshot goes here once shot. Drop a wide PNG at docs/assets/hero.png
+  (suggested 2400×1500 @2x, panel slid out over a desktop wallpaper) and
+  uncomment the line below.
+
+  <img src="docs/assets/hero.png" alt="HoverNote panel slid out over the desktop" width="820" />
+-->
 
 </div>
 
