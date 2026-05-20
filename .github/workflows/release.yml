@@ -86,6 +86,41 @@ jobs:
             --app-drop-link 425 200 \
             "HoverNote-${{ steps.ver.outputs.version }}.dmg" "$app"
 
+      # Direct-to-main flow → no PRs → GitHub's built-in
+      # generate_release_notes only emits a compare link. Build notes ourselves
+      # by bucketing conventional commits since the previous tag.
+      - name: Build release notes
+        if: steps.ver.outputs.should_release == 'true'
+        env:
+          NEW_TAG: ${{ steps.ver.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          prev=$(git tag -l 'v*' --sort=-v:refname | head -n1)
+          if [ -n "$prev" ]; then range="${prev}..HEAD"; else range="HEAD"; fi
+
+          subjects=$(git log $range --no-merges --pretty='%s')
+          feats=$(printf '%s\n' "$subjects" | grep -E '^feat(\(.+\))?!?:' \
+                  | sed -E 's/^feat(\(.+\))?!?: */- /' || true)
+          fixes=$(printf '%s\n' "$subjects" | grep -E '^fix(\(.+\))?!?:'  \
+                  | sed -E 's/^fix(\(.+\))?!?: */- /' || true)
+          others=$(printf '%s\n' "$subjects" | grep -Ev '^(feat|fix)(\(.+\))?!?:' \
+                  | grep -v '^$' | sed 's/^/- /' || true)
+
+          {
+            [ -n "$feats"  ] && { echo "### Added";   echo; echo "$feats";  echo; }
+            [ -n "$fixes"  ] && { echo "### Fixed";   echo; echo "$fixes";  echo; }
+            if [ -n "$others" ]; then
+              echo "<details><summary>Other changes</summary>"; echo
+              echo "$others"; echo
+              echo "</details>"; echo
+            fi
+            [ -n "$prev" ] && echo "**Full Changelog**: https://github.com/${REPO}/compare/${prev}...${NEW_TAG}"
+          } > RELEASE_NOTES.md
+
+          echo "::group::Release notes"
+          cat RELEASE_NOTES.md
+          echo "::endgroup::"
+
       - name: Publish public release
         if: steps.ver.outputs.should_release == 'true'
         uses: softprops/action-gh-release@v2
@@ -96,6 +131,6 @@ jobs:
           draft: false                  # public immediately
           prerelease: false
           make_latest: true
-          generate_release_notes: true  # notes auto-built from commits
+          body_path: RELEASE_NOTES.md   # custom notes (see Build release notes)
           files: "HoverNote-*.dmg"
           fail_on_unmatched_files: true
