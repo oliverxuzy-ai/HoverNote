@@ -10,13 +10,19 @@ right screen edge. SwiftUI, macOS 14+, native materials. **North star: the
 product — interaction/animation craft is judged at Bear / Things 3 / Linear
 tier; "generic" is a failure (this bar is non-negotiable, see Memory below).
 
-Repo: `git@github.com:oliverxuzy-ai/HoverNote.git` · branch `main` · latest
-commit `b5f49a2`. Local-only `changes.md` is auto-appended by a `pre-push`
-git hook (gitignored, not in repo).
+Repo: `git@github.com:oliverxuzy-ai/HoverNote.git` · branch `main` ·
+direct-to-main flow (no PRs). Local-only `changes.md` is auto-appended by a
+`pre-push` git hook (gitignored, not in repo).
 
 ## Current progress
 
-Milestones M0–M4 complete + two rounds of post-DMG user feedback shipped:
+**Shipped & public on GitHub** — `v0.3.0` is the current "Latest" release.
+Auto-release: every push to `main` runs `.github/workflows/release.yml`, which
+derives the next version from conventional commits since the last tag
+(`feat` → minor, `fix` → patch, docs/chore → no release), builds the signed-to-run
+`.dmg`, and publishes a public release with `feat`/`fix`-bucketed notes.
+
+Milestone log (M0–M4 plus continuous shipping after):
 
 - **M0–M2**: xcodegen scaffold, NSPanel single-spring slide + 3-layer glass +
   triple shadow, file storage (`~/Documents/SideNote/<ULID>.md`, YAML
@@ -24,17 +30,21 @@ Milestones M0–M4 complete + two rounds of post-DMG user feedback shipped:
 - **M3**: General Sans + JetBrains Mono bundled & runtime-registered;
   micro-motion tokens; edge-hover trigger (CGEventTap + Accessibility,
   opt-in via Preferences).
-- **M4**: `.dmg` pipeline works. **GitHub release `v0.1.0` is cut as a DRAFT**
-  (`isDraft: true`, tag pushed, `HoverNote-0.1.0.dmg` attached). NOT public.
-- **Post-feedback**: live Markdown editing (Bear-style, no edit/preview
-  toggle — regex highlighter + custom `NSLayoutManager` drawing real `•`
-  bullets and clickable `☐/☑` to-do; markers recede but text is intact);
-  `swift-markdown` dependency removed; swipe-to-pin (right) / swipe-to-delete
-  (left) with **trackpad two-finger** (custom `scrollWheel`) + mouse drag
-  (`NSPanGestureRecognizer`); MIT `LICENSE` added.
+- **M4**: `.dmg` pipeline works; `v0.1.0` cut → un-drafted → made public.
+- **Post-M4 (in `v0.2.x` / `v0.3.0`)**: live Markdown editing (Bear-style,
+  no edit/preview toggle — regex highlighter + custom `NSLayoutManager`
+  drawing real `•` bullets and clickable `☐/☑` to-do; markers recede but
+  text is intact); `swift-markdown` dependency removed; swipe-to-pin
+  (right) / swipe-to-delete (left) with **trackpad two-finger** (custom
+  `scrollWheel`) + mouse drag (`NSPanGestureRecognizer`); ordered lists with
+  hanging indent; slash command menu (`/` → Heading/list/to-do/quote/code);
+  user-configurable reveal hotkey (key recorder in Preferences); hover
+  feedback on every button; product rename to **HoverNote** (display name
+  only — internal module / scheme / Xcode target stay `SideNote`); MIT
+  `LICENSE`; README rewrite (EN + zh-CN) + app-icon hero.
 
-17 unit tests green (storage round-trip, ULID, highlighter regex tokenization).
-HotKey is the only remaining SPM dependency.
+29 unit tests green (storage round-trip, ULID, highlighter regex
+tokenization, feature suite). HotKey is the only remaining SPM dependency.
 
 ## What worked
 
@@ -67,24 +77,33 @@ HotKey is the only remaining SPM dependency.
 - `create-dmg` fails if a stale `/Volumes/HoverNote` is mounted — detach
   first. And zsh aborts a `&&` chain if a glob (`/Volumes/HoverNote*`) has
   no match — guard globs.
-- Publishing the GitHub release was blocked by the auto-mode classifier; the
-  user ran the `gh release` / tag push themselves (or grants permission).
+- Auto-mode classifier blocks `git push origin main` and `gh release` even
+  on this solo repo. Ask the user to allow inline, or have them add a
+  permission rule for `git push origin main` in this repo's settings.
 - PP Editorial New (display font) is gated behind an email/click on
   pangrampangram.com — cannot be fetched programmatically.
 
 ## Next steps
 
-1. **Owner-only, blocks public v0.1.0** (not code):
-   - Drop `PPEditorialNew-Regular.otf` + `PPEditorialNew-Italic.otf` into
-     `SideNote/Resources/Fonts/` (code auto-detects by PostScript name; until
-     then headlines fall back to system serif — `EditorFont`/`Typography`).
-   - Record the 30-second demo (slide-in → switch → create → pin → slide-out).
-   - Then rebuild the `.dmg`, replace the draft-release asset, and the user
-     publishes (un-drafts) `v0.1.0`. Do NOT publish unilaterally.
-2. After font is added: rebuild Release `.dmg`, send to user to verify the
-   north-star feel with real type.
-3. Open follow-ups the user may raise: image thumbnails on cards (v1.1; no
-   image attachments in v1), further animation polish.
+Owner-only assets (not code) that would close the remaining visible gaps:
+
+1. **PP Editorial New display font**: drop `PPEditorialNew-Regular.otf` +
+   `PPEditorialNew-Italic.otf` into `SideNote/Resources/Fonts/` (code
+   auto-detects by PostScript name; until then headlines fall back to system
+   serif — see `EditorFont`/`Typography`). Push lands a `feat:` commit and
+   the workflow cuts the next minor automatically.
+2. **README hero screenshot**: drop a wide PNG at `docs/assets/hero.png`
+   (suggested 2400×1500 @2x, panel slid out over a desktop wallpaper) and
+   uncomment the `<img>` line in `README.md` + `README.zh-CN.md`. The slot
+   already exists in both files.
+3. **30-second demo GIF/MP4**: slide-in → switch note → create → pin →
+   slide-out. Pin it under the hero or in the "What it is" section.
+4. **Custom Open Graph social-preview image**: 1280×640 sage banner so
+   Twitter/Slack link previews stop using GitHub's default.
+
+Open follow-ups the user may raise: image thumbnails on cards (v1.1; no
+image attachments in v1), search-ring focus rendering, further animation
+polish.
 
 ## Map
 

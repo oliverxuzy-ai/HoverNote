@@ -13,6 +13,7 @@ macOS 上最安静好看的笔记 App——做不到就不值得发布。
 ![swift](https://img.shields.io/badge/Swift-5.10-6E8060?style=flat-square)
 ![SwiftUI](https://img.shields.io/badge/SwiftUI-native-6E8060?style=flat-square)
 [![release](https://img.shields.io/github/v/release/oliverxuzy-ai/HoverNote?sort=semver&style=flat-square&color=6E8060&label=release)](https://github.com/oliverxuzy-ai/HoverNote/releases/latest)
+[![build](https://img.shields.io/github/actions/workflow/status/oliverxuzy-ai/HoverNote/release.yml?branch=main&style=flat-square&color=6E8060&label=build)](https://github.com/oliverxuzy-ai/HoverNote/actions/workflows/release.yml)
 ![license](https://img.shields.io/badge/license-MIT-6E8060?style=flat-square)
 
 <!--
